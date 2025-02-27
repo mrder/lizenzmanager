@@ -27,7 +27,7 @@
     <Mode>rw</Mode>
   </Volume>
 
-  <!-- EXPLICIT ENVIRONMENT VARIABLES -->
+  <!-- ENVIRONMENT VARIABLES -->
   <Environment>
     <Variable>
       <Name>USERNAME</Name>
@@ -51,7 +51,7 @@
     </Variable>
   </Environment>
 
-  <!-- DISABLE UNRAID'S AUTO-DETECTION -->
+  <!-- Force Unraid to Ignore Extra Variables -->
   <ExtraParams>--env USERNAME --env PASSWORD --env BASE_DOMAIN --env UPLOAD_FOLDER --env PORT</ExtraParams>
 
 </Container>
