@@ -10,9 +10,9 @@ from werkzeug.utils import secure_filename
 USERNAME = os.environ.get('USERNAME', 'admin')
 PASSWORD = os.environ.get('PASSWORD', 'secret1991')
 BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'http://localhost:5200')
-# UPLOAD_FOLDER wird entweder über Umgebungsvariable oder im Containerverzeichnis /app/uploads gesetzt
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.getcwd(), 'uploads'))
 PORT = int(os.environ.get('PORT', 5200))
+SECRET_KEY = os.environ.get('SECRET_KEY', 'a1s2d3f4g5h6j7k8l8ö9')
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///licenses.db'
@@ -599,4 +599,4 @@ def error_log(license_id):
     return render_template_string(error_log_template, license=license_record, error_logs=error_logs)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5200)), debug=True)
+    app.run(host="0.0.0.0", port=PORT, debug=True)
