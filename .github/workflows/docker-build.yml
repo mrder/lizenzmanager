@@ -3,7 +3,7 @@ name: Docker Build and Push to Docker Hub
 on:
   push:
     branches:
-      - main  # Wird ausgeführt, wenn Änderungen auf "main" gepusht werden
+      - main  # Wird ausgelöst, wenn du in main pushst
 
 jobs:
   build-and-push:
@@ -20,7 +20,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker Image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/lizenzmanager:latest .
+        run: docker build -t mrder/lizenzmanager:latest .
 
       - name: Push Docker Image to Docker Hub
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/lizenzmanager:latest
+        run: docker push mrder/lizenzmanager:latest
