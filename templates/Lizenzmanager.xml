@@ -3,21 +3,19 @@
   <Repository>mrder/lizenzmanager:latest</Repository>
   <Network>bridge</Network>
   <Privileged>false</Privileged>
-  <Support/>
-  <Overview>Ein Lizenz- und Update-Manager</Overview>
+  <Overview>Ein Lizenz- und Update-Manager für Software.</Overview>
   <Category>Tools</Category>
   <WebUI>http://[IP]:[PORT]/dashboard</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/mrder/lizenzmanager/main/templates/Lizenzmanager.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/mrder/lizenzmanager/main/icon.png</Icon>
 
-  <!-- Ports -->
+  <!-- PORTS -->
   <Port>
     <HostPort>5200</HostPort>
     <ContainerPort>5200</ContainerPort>
     <Protocol>tcp</Protocol>
   </Port>
 
-  <!-- Speicherorte (Volumes) -->
+  <!-- VOLUMES -->
   <Volume>
     <HostDir>/mnt/user/appdata/lizenzmanager/uploads</HostDir>
     <ContainerDir>/app/uploads</ContainerDir>
@@ -29,7 +27,7 @@
     <Mode>rw</Mode>
   </Volume>
 
-  <!-- Umgebungsvariablen für die Konfiguration -->
+  <!-- EXPLICIT ENVIRONMENT VARIABLES -->
   <Environment>
     <Variable>
       <Name>USERNAME</Name>
@@ -52,4 +50,8 @@
       <Value>5200</Value>
     </Variable>
   </Environment>
+
+  <!-- DISABLE UNRAID'S AUTO-DETECTION -->
+  <ExtraParams>--env USERNAME --env PASSWORD --env BASE_DOMAIN --env UPLOAD_FOLDER --env PORT</ExtraParams>
+
 </Container>
