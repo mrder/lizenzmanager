@@ -1,20 +1,61 @@
-<Template>
-  <Name>lizenzmanager</Name>
+<Container>
+  <Name>Lizenzmanager</Name>
   <Repository>mrder/lizenzmanager:latest</Repository>
   <Network>bridge</Network>
-  <MyIP/>
-  <Shell>bash</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/mrder/lizenzmanager</Support>
-  <WebUI>http://[IP]:[PORT:5200]</WebUI>
+  <Overview>Ein Lizenz- und Update-Manager für Software.</Overview>
+  <Category>Tools</Category>
+  <WebUI>http://[IP]:[PORT]/dashboard</WebUI>
   <Icon>https://raw.githubusercontent.com/mrder/lizenzmanager/main/icon.png</Icon>
-  <ExtraParams/>
-  <PostArgs/>
-  <CPUset/>
-  <Config Name="USERNAME" Target="env" Default="admin" Mode="string" Description="Benutzername für den Login"/>
-  <Config Name="PASSWORD" Target="env" Default="secret1991" Mode="string" Description="Passwort für den Login"/>
-  <Config Name="BASE_DOMAIN" Target="env" Default="http://localhost:5200" Mode="string" Description="Basis-URL der App"/>
-  <Config Name="UPLOAD_FOLDER" Target="env" Default="/app/uploads" Mode="string" Description="Verzeichnis für Uploads"/>
-  <Config Name="PORT" Target="env" Default="5200" Mode="number" Description="Port der App"/>
-  <Config Name="SECRET_KEY" Target="env" Default="a1s2d3f4g5h6j7k8l8ö9" Mode="string" Description="Secret Key für Session-Sicherheit"/>
-</Template>
+
+  <!-- PORTS -->
+  <Port>
+    <HostPort>5200</HostPort>
+    <ContainerPort>5200</ContainerPort>
+    <Protocol>tcp</Protocol>
+  </Port>
+
+  <!-- VOLUMES -->
+  <Volume>
+    <HostDir>/mnt/user/appdata/lizenzmanager/uploads</HostDir>
+    <ContainerDir>/app/uploads</ContainerDir>
+    <Mode>rw</Mode>
+  </Volume>
+  <Volume>
+    <HostDir>/mnt/user/appdata/lizenzmanager/db</HostDir>
+    <ContainerDir>/app/licenses.db</ContainerDir>
+    <Mode>rw</Mode>
+  </Volume>
+
+  <!-- ENVIRONMENT VARIABLES (EXPLICITLY DEFINED) -->
+  <Environment>
+    <Variable>
+      <Name>USERNAME</Name>
+      <Value>admin</Value>
+    </Variable>
+    <Variable>
+      <Name>PASSWORD</Name>
+      <Value>secret1991</Value>
+    </Variable>
+    <Variable>
+      <Name>BASE_DOMAIN</Name>
+      <Value>http://localhost:5200</Value>
+    </Variable>
+    <Variable>
+      <Name>UPLOAD_FOLDER</Name>
+      <Value>/app/uploads</Value>
+    </Variable>
+    <Variable>
+      <Name>PORT</Name>
+      <Value>5200</Value>
+    </Variable>
+    <Variable>
+      <Name>SECRET_KEY</Name>
+      <Value>a1s2d3f4g5h6j7k8l8ö9</Value>
+    </Variable>
+  </Environment>
+
+  <!-- VERHINDERT AUTO-DETEKTION VON UNRAID -->
+  <ExtraParams>--env USERNAME --env PASSWORD --env BASE_DOMAIN --env UPLOAD_FOLDER --env PORT --env SECRET_KEY</ExtraParams>
+
+</Container>
