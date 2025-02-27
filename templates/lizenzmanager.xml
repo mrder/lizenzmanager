@@ -1,61 +1,59 @@
-<Container>
-  <Name>Lizenzmanager</Name>
-  <Repository>mrder/lizenzmanager:latest</Repository>
-  <Network>bridge</Network>
-  <Privileged>false</Privileged>
-  <Overview>Ein Lizenz- und Update-Manager für Software.</Overview>
-  <Category>Tools</Category>
-  <WebUI>http://[IP]:[PORT]/dashboard</WebUI>
-  <Icon>https://raw.githubusercontent.com/mrder/lizenzmanager/main/icon.png</Icon>
+<Environment>
+  <!-- Gewünschte Variablen, die konfigurierbar sein sollen -->
+  <Variable>
+    <Name>USERNAME</Name>
+    <Value>admin</Value>
+    <Mode>string</Mode>
+    <Description>Benutzername für den Login</Description>
+  </Variable>
+  <Variable>
+    <Name>PASSWORD</Name>
+    <Value>secret1991</Value>
+    <Mode>string</Mode>
+    <Description>Passwort für den Login</Description>
+  </Variable>
+  <Variable>
+    <Name>BASE_DOMAIN</Name>
+    <Value>http://localhost:5200</Value>
+    <Mode>string</Mode>
+    <Description>Basis-URL der App</Description>
+  </Variable>
+  <Variable>
+    <Name>UPLOAD_FOLDER</Name>
+    <Value>/app/uploads</Value>
+    <Mode>string</Mode>
+    <Description>Verzeichnis für Uploads</Description>
+  </Variable>
+  <Variable>
+    <Name>PORT</Name>
+    <Value>5200</Value>
+    <Mode>number</Mode>
+    <Description>Port der App</Description>
+  </Variable>
+  <Variable>
+    <Name>SECRET_KEY</Name>
+    <Value>a1s2d3f4g5h6j7k8l8ö9</Value>
+    <Mode>string</Mode>
+    <Description>Secret Key für Session-Sicherheit</Description>
+  </Variable>
 
-  <!-- PORTS -->
-  <Port>
-    <HostPort>5200</HostPort>
-    <ContainerPort>5200</ContainerPort>
-    <Protocol>tcp</Protocol>
-  </Port>
-
-  <!-- VOLUMES -->
-  <Volume>
-    <HostDir>/mnt/user/appdata/lizenzmanager/uploads</HostDir>
-    <ContainerDir>/app/uploads</ContainerDir>
-    <Mode>rw</Mode>
-  </Volume>
-  <Volume>
-    <HostDir>/mnt/user/appdata/lizenzmanager/db</HostDir>
-    <ContainerDir>/app/licenses.db</ContainerDir>
-    <Mode>rw</Mode>
-  </Volume>
-
-  <!-- ENVIRONMENT VARIABLES (EXPLICITLY DEFINED) -->
-  <Environment>
-    <Variable>
-      <Name>USERNAME</Name>
-      <Value>admin</Value>
-    </Variable>
-    <Variable>
-      <Name>PASSWORD</Name>
-      <Value>secret1991</Value>
-    </Variable>
-    <Variable>
-      <Name>BASE_DOMAIN</Name>
-      <Value>http://localhost:5200</Value>
-    </Variable>
-    <Variable>
-      <Name>UPLOAD_FOLDER</Name>
-      <Value>/app/uploads</Value>
-    </Variable>
-    <Variable>
-      <Name>PORT</Name>
-      <Value>5200</Value>
-    </Variable>
-    <Variable>
-      <Name>SECRET_KEY</Name>
-      <Value>a1s2d3f4g5h6j7k8l8ö9</Value>
-    </Variable>
-  </Environment>
-
-  <!-- VERHINDERT AUTO-DETEKTION VON UNRAID -->
-  <ExtraParams>--env USERNAME --env PASSWORD --env BASE_DOMAIN --env UPLOAD_FOLDER --env PORT --env SECRET_KEY</ExtraParams>
-
-</Container>
+  <!-- Unerwünschte, automatisch gesetzte Variablen aus dem Basisimage ausblenden -->
+  <Variable Hidden="true">
+    <Name>LANG</Name>
+  </Variable>
+  <Variable Hidden="true">
+    <Name>GPG_KEY</Name>
+  </Variable>
+  <Variable Hidden="true">
+    <Name>PYTHON_VERSION</Name>
+  </Variable>
+  <Variable Hidden="true">
+    <Name>PYTHON_SHA256</Name>
+  </Variable>
+  <Variable Hidden="true">
+    <Name>PYTHONUNBUFFERED</Name>
+  </Variable>
+  <Variable Hidden="true">
+    <Name>Community_Applications_Conversion</Name>
+  </Variable>
+</Environment>
