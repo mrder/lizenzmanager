@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# Debugging: Zeige die Umgebungsvariablen beim Start
-echo "### STARTE LIZENZMANAGER MIT FOLGENDEN EINSTELLUNGEN ###"
+echo "### STARTE LIZENZMANAGER MIT DIESEN VARIABLEN ###"
 env | grep -E "USERNAME|PASSWORD|BASE_DOMAIN|UPLOAD_FOLDER|PORT"
 
 # Falls eine Variable fehlt, Standardwerte setzen
