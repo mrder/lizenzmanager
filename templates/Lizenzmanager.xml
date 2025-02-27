@@ -1,5 +1,4 @@
 <Environment>
-  <!-- Gewünschte Variablen, die konfigurierbar sein sollen -->
   <Variable>
     <Name>USERNAME</Name>
     <Value>admin</Value>
@@ -37,7 +36,7 @@
     <Description>Secret Key für Session-Sicherheit</Description>
   </Variable>
 
-  <!-- Unerwünschte, automatisch gesetzte Variablen aus dem Basisimage ausblenden -->
+  <!-- Unnötige Basisvariablen ausblenden -->
   <Variable Hidden="true">
     <Name>LANG</Name>
   </Variable>
