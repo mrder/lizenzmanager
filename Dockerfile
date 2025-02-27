@@ -1,9 +1,14 @@
 FROM python:3
 
-# Unbuffered stdout/stderr für bessere Logs
+# Entferne Systemvariablen aus der Umgebung, die Unraid erkennt
+ENV LANG= C.UTF-8
+ENV LC_ALL= C.UTF-8
+ENV GPG_KEY= ""
+ENV PYTHON_VERSION= ""
+ENV PYTHON_SHA256= ""
 ENV PYTHONUNBUFFERED=1
 
-# Stelle sicher, dass nur relevante ENV-Variablen existieren
+# Unsere gewünschten Umgebungsvariablen setzen
 ENV USERNAME=admin
 ENV PASSWORD=secret1991
 ENV BASE_DOMAIN=http://localhost:5200
@@ -12,18 +17,18 @@ ENV PORT=5200
 
 WORKDIR /app
 
-# Kopiere und installiere Python-Abhängigkeiten
+# Installiere Abhängigkeiten
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Kopiere den Anwendungscode
 COPY . /app
 
-# Mache das Entry-Skript ausführbar
+# Mache entrypoint.sh ausführbar
 RUN chmod +x /app/entrypoint.sh
 
-# Setze entrypoint.sh als Startpunkt
+# Setze entrypoint.sh als Startbefehl
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-# Setze Standardport (Unraid ignoriert EXPOSE, aber es ist hilfreich für Tests)
+# Setze Standardport
 EXPOSE 5200
