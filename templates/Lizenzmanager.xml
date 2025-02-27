@@ -13,26 +13,7 @@
   <DonateLink>https://www.paypal.me/deinlink</DonateLink>
   <TemplateURL>https://raw.githubusercontent.com/mrder/lizenzmanager/main/templates/Lizenzmanager.xml</TemplateURL>
 
-  <!-- PORTS -->
-  <Port>
-    <HostPort>5200</HostPort>
-    <ContainerPort>5200</ContainerPort>
-    <Protocol>tcp</Protocol>
-  </Port>
-
-  <!-- VOLUMES (Daten und Uploads) -->
-  <Volume>
-    <HostDir>/mnt/user/appdata/lizenzmanager/uploads</HostDir>
-    <ContainerDir>/app/uploads</ContainerDir>
-    <Mode>rw</Mode>
-  </Volume>
-  <Volume>
-    <HostDir>/mnt/user/appdata/lizenzmanager/db</HostDir>
-    <ContainerDir>/app/licenses.db</ContainerDir>
-    <Mode>rw</Mode>
-  </Volume>
-
-  <!-- ENVIRONMENT VARIABLES (nur relevante anzeigen) -->
+  <!-- EXPLIZITE ENV-VARIABLEN, UM FALSCHE ZU VERHINDERN -->
   <Environment>
     <Variable>
       <Name>USERNAME</Name>
@@ -56,7 +37,7 @@
     </Variable>
   </Environment>
 
-  <!-- EXTRA PARAMS um Auto-Erkennung zu verhindern -->
+  <!-- VERHINDERT AUTO-DETECTION VON UNRAID -->
   <ExtraParams>--env USERNAME --env PASSWORD --env BASE_DOMAIN --env UPLOAD_FOLDER --env PORT</ExtraParams>
 
 </Container>
