@@ -35,4 +35,23 @@
     <Mode>string</Mode>
     <Description>Secret Key für Session-Sicherheit</Description>
   </Variable>
+  <!-- Unnötige Variablen ausblenden -->
+  <Variable Hidden="true">
+    <Name>LANG</Name>
+  </Variable>
+  <Variable Hidden="true">
+    <Name>GPG_KEY</Name>
+  </Variable>
+  <Variable Hidden="true">
+    <Name>PYTHON_VERSION</Name>
+  </Variable>
+  <Variable Hidden="true">
+    <Name>PYTHON_SHA256</Name>
+  </Variable>
+  <Variable Hidden="true">
+    <Name>PYTHONUNBUFFERED</Name>
+  </Variable>
+  <Variable Hidden="true">
+    <Name>Community_Applications_Conversion</Name>
+  </Variable>
 </Environment>
