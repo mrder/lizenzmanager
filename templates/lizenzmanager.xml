@@ -1,38 +1,20 @@
-<Container>
-  <Name>Lizenzmanager</Name>
+<Template>
+  <Name>lizenzmanager</Name>
   <Repository>mrder/lizenzmanager:latest</Repository>
   <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
   <Privileged>false</Privileged>
-  <Overview>Ein Lizenz- und Update-Manager für Software.</Overview>
-  <Category>Tools</Category>
-  <WebUI>http://[IP]:[PORT]/dashboard</WebUI>
+  <Support>https://github.com/mrder/lizenzmanager</Support>
+  <WebUI>http://[IP]:[PORT:5200]</WebUI>
   <Icon>https://raw.githubusercontent.com/mrder/lizenzmanager/main/icon.png</Icon>
-
-  <!-- EXPLIZITE UMGEBUNGSVARIABLEN ERZWINGEN -->
-  <Environment>
-    <Variable>
-      <Name>USERNAME</Name>
-      <Value>admin</Value>
-    </Variable>
-    <Variable>
-      <Name>PASSWORD</Name>
-      <Value>secret1991</Value>
-    </Variable>
-    <Variable>
-      <Name>BASE_DOMAIN</Name>
-      <Value>http://localhost:5200</Value>
-    </Variable>
-    <Variable>
-      <Name>UPLOAD_FOLDER</Name>
-      <Value>/app/uploads</Value>
-    </Variable>
-    <Variable>
-      <Name>PORT</Name>
-      <Value>5200</Value>
-    </Variable>
-  </Environment>
-
-  <!-- UNRAID DARF KEINE AUTOMATISCHEN VARIABLEN ERKENNEN -->
-  <ExtraParams>--env USERNAME --env PASSWORD --env BASE_DOMAIN --env UPLOAD_FOLDER --env PORT</ExtraParams>
-
-</Container>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <Config Name="USERNAME" Target="env" Default="admin" Mode="string" Description="Benutzername für den Login"/>
+  <Config Name="PASSWORD" Target="env" Default="secret1991" Mode="string" Description="Passwort für den Login"/>
+  <Config Name="BASE_DOMAIN" Target="env" Default="http://localhost:5200" Mode="string" Description="Basis-URL der App"/>
+  <Config Name="UPLOAD_FOLDER" Target="env" Default="/app/uploads" Mode="string" Description="Verzeichnis für Uploads"/>
+  <Config Name="PORT" Target="env" Default="5200" Mode="number" Description="Port der App"/>
+  <Config Name="SECRET_KEY" Target="env" Default="a1s2d3f4g5h6j7k8l8ö9" Mode="string" Description="Secret Key für Session-Sicherheit"/>
+</Template>
