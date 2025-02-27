@@ -1,41 +1,14 @@
 <Environment>
+  <!-- Deine gewünschten Variablen -->
   <Variable>
     <Name>USERNAME</Name>
     <Value>admin</Value>
     <Mode>string</Mode>
     <Description>Benutzername für den Login</Description>
   </Variable>
-  <Variable>
-    <Name>PASSWORD</Name>
-    <Value>secret1991</Value>
-    <Mode>string</Mode>
-    <Description>Passwort für den Login</Description>
-  </Variable>
-  <Variable>
-    <Name>BASE_DOMAIN</Name>
-    <Value>http://localhost:5200</Value>
-    <Mode>string</Mode>
-    <Description>Basis-URL der App</Description>
-  </Variable>
-  <Variable>
-    <Name>UPLOAD_FOLDER</Name>
-    <Value>/app/uploads</Value>
-    <Mode>string</Mode>
-    <Description>Verzeichnis für Uploads</Description>
-  </Variable>
-  <Variable>
-    <Name>PORT</Name>
-    <Value>5200</Value>
-    <Mode>number</Mode>
-    <Description>Port der App</Description>
-  </Variable>
-  <Variable>
-    <Name>SECRET_KEY</Name>
-    <Value>a1s2d3f4g5h6j7k8l8ö9</Value>
-    <Mode>string</Mode>
-    <Description>Secret Key für Session-Sicherheit</Description>
-  </Variable>
-  <!-- Unnötige Variablen ausblenden -->
+  <!-- ... weitere gewünschte Variablen ... -->
+
+  <!-- Unerwünschte Variablen ausblenden -->
   <Variable Hidden="true">
     <Name>LANG</Name>
   </Variable>
@@ -55,3 +28,4 @@
     <Name>Community_Applications_Conversion</Name>
   </Variable>
 </Environment>
+<ExtraParams>--env USERNAME --env PASSWORD --env BASE_DOMAIN --env UPLOAD_FOLDER --env PORT --env SECRET_KEY</ExtraParams>
