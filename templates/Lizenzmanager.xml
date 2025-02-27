@@ -1,23 +1,62 @@
-<Environment>
-  <Variable>
-    <Name>USERNAME</Name>
-    <Value>admin</Value>
-  </Variable>
-  <Variable>
-    <Name>PASSWORD</Name>
-    <Value>secret1991</Value>
-  </Variable>
-  <Variable>
-    <Name>BASE_DOMAIN</Name>
-    <Value>http://localhost:5200</Value>
-  </Variable>
-  <Variable>
-    <Name>UPLOAD_FOLDER</Name>
-    <Value>/app/uploads</Value>
-  </Variable>
-  <Variable>
-    <Name>PORT</Name>
-    <Value>5200</Value>
-  </Variable>
-</Environment>
-<ExtraParams>--env USERNAME --env PASSWORD --env BASE_DOMAIN --env UPLOAD_FOLDER --env PORT</ExtraParams>
+<Container>
+  <Name>Lizenzmanager</Name>
+  <Repository>mrder/lizenzmanager:latest</Repository>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Overview>Ein Lizenz- und Update-Manager für Software.</Overview>
+  <Category>Tools</Category>
+  <WebUI>http://[IP]:[PORT]/dashboard</WebUI>
+  <Icon>https://raw.githubusercontent.com/mrder/lizenzmanager/main/icon.png</Icon>
+  <Support>https://github.com/mrder/lizenzmanager/issues</Support>
+  <Project>https://github.com/mrder/lizenzmanager</Project>
+  <DonateText>Unterstütze die Entwicklung!</DonateText>
+  <DonateLink>https://www.paypal.me/deinlink</DonateLink>
+  <TemplateURL>https://raw.githubusercontent.com/mrder/lizenzmanager/main/templates/Lizenzmanager.xml</TemplateURL>
+
+  <!-- PORTS -->
+  <Port>
+    <HostPort>5200</HostPort>
+    <ContainerPort>5200</ContainerPort>
+    <Protocol>tcp</Protocol>
+  </Port>
+
+  <!-- VOLUMES (Daten und Uploads) -->
+  <Volume>
+    <HostDir>/mnt/user/appdata/lizenzmanager/uploads</HostDir>
+    <ContainerDir>/app/uploads</ContainerDir>
+    <Mode>rw</Mode>
+  </Volume>
+  <Volume>
+    <HostDir>/mnt/user/appdata/lizenzmanager/db</HostDir>
+    <ContainerDir>/app/licenses.db</ContainerDir>
+    <Mode>rw</Mode>
+  </Volume>
+
+  <!-- ENVIRONMENT VARIABLES (nur relevante anzeigen) -->
+  <Environment>
+    <Variable>
+      <Name>USERNAME</Name>
+      <Value>admin</Value>
+    </Variable>
+    <Variable>
+      <Name>PASSWORD</Name>
+      <Value>secret1991</Value>
+    </Variable>
+    <Variable>
+      <Name>BASE_DOMAIN</Name>
+      <Value>http://localhost:5200</Value>
+    </Variable>
+    <Variable>
+      <Name>UPLOAD_FOLDER</Name>
+      <Value>/app/uploads</Value>
+    </Variable>
+    <Variable>
+      <Name>PORT</Name>
+      <Value>5200</Value>
+    </Variable>
+  </Environment>
+
+  <!-- EXTRA PARAMS um Auto-Erkennung zu verhindern -->
+  <ExtraParams>--env USERNAME --env PASSWORD --env BASE_DOMAIN --env UPLOAD_FOLDER --env PORT</ExtraParams>
+
+</Container>
