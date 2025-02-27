@@ -1,33 +1,33 @@
-FROM python:3.9-slim
+# Verwende das vollständige Python 3 Image statt "slim"
+FROM python:3
 
-# Unbuffered stdout/stderr
+# Unbuffered stdout/stderr für besseres Logging
 ENV PYTHONUNBUFFERED=1
 
-# Define Arguments (Used Only at Build Time)
-ARG USERNAME=admin
-ARG PASSWORD=secret1991
-ARG BASE_DOMAIN=http://localhost:5200
-ARG UPLOAD_FOLDER=/app/uploads
-ARG PORT=5200
-
-# Convert Arguments to Environment Variables (Used at Runtime)
-ENV USERNAME=${USERNAME}
-ENV PASSWORD=${PASSWORD}
-ENV BASE_DOMAIN=${BASE_DOMAIN}
-ENV UPLOAD_FOLDER=${UPLOAD_FOLDER}
-ENV PORT=${PORT}
+# Wichtige Variablen als Umgebungsvariablen setzen
+ENV USERNAME=admin
+ENV PASSWORD=secret1991
+ENV BASE_DOMAIN=http://localhost:5200
+ENV UPLOAD_FOLDER=/app/uploads
+ENV PORT=5200
 
 WORKDIR /app
 
-# Copy and install dependencies
+# Aktualisiere Systempakete und installiere Abhängigkeiten
+RUN apt update && apt install -y \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Kopiere und installiere die Anforderungen
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code
+# Kopiere den Anwendungscode
 COPY . /app
 
-# Ensure the correct port is exposed
-EXPOSE $PORT
+# Setze Standardport (EXPOSE ist nur informativ)
+EXPOSE 5200
 
-# Start Flask app with proper environment variables
+# Starte die Flask-App mit den definierten Umgebungsvariablen
 CMD ["sh", "-c", "python app.py"]
