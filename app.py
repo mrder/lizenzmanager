@@ -599,4 +599,4 @@ def error_log(license_id):
     return render_template_string(error_log_template, license=license_record, error_logs=error_logs)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=PORT, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5200)), debug=True)
