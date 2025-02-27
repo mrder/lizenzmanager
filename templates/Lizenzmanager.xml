@@ -7,11 +7,6 @@
   <Category>Tools</Category>
   <WebUI>http://[IP]:[PORT]/dashboard</WebUI>
   <Icon>https://raw.githubusercontent.com/mrder/lizenzmanager/main/icon.png</Icon>
-  <Support>https://github.com/mrder/lizenzmanager/issues</Support>
-  <Project>https://github.com/mrder/lizenzmanager</Project>
-  <DonateText>Unterstütze die Entwicklung!</DonateText>
-  <DonateLink>https://www.paypal.me/deinlink</DonateLink>
-  <TemplateURL>https://raw.githubusercontent.com/mrder/lizenzmanager/main/templates/Lizenzmanager.xml</TemplateURL>
 
   <!-- EXPLIZITE ENV-VARIABLEN, UM FALSCHE ZU VERHINDERN -->
   <Environment>
