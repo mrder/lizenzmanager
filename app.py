@@ -1,35 +1,35 @@
 import os
+import uuid
 from flask import Flask, request, jsonify, render_template_string, redirect, url_for, session, flash, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-import uuid
 from functools import wraps
 from werkzeug.utils import secure_filename
 
-# Konfiguration über Umgebungsvariablen
-USERNAME = os.environ.get('USERNAME', 'admin')
-PASSWORD = os.environ.get('PASSWORD', 'secret1991')
-BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'http://localhost:5200')
-UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.getcwd(), 'uploads'))
-PORT = int(os.environ.get('PORT', 5200))
-SECRET_KEY = os.environ.get('SECRET_KEY', 'a1s2d3f4g5h6j7k8l8ö9')
+# Globale Variable für die Basis-Domain (anpassen, wenn sich die Domain ändert)
+BASE_DOMAIN = "https://sonnystools.sonnyathome.online"
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///licenses.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = os.environ.get('SECRET_KEY', 'a1s2d3f4g5h6j7k8l8ö9')
+app.secret_key = 'a1s2d3f4g5h6j7k8l8ö9'  # Bitte durch einen sicheren Schlüssel ersetzen
 
 # Konfiguration für Uploads
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
 
-# Datenbankmodell für eine Lizenz
+# Konfiguration für den Login
+USERNAME = 'admin'
+PASSWORD = 'secret1991'
+
+# -------------------- Datenbankmodelle --------------------
 class License(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    owner = db.Column(db.String(120))
+    owner = db.Column(db.String(120))              # Eigentümer der Lizenz
     client_id = db.Column(db.String(120), unique=True, nullable=False)
     license_key = db.Column(db.String(120), unique=True, nullable=False)
     acquired_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -37,31 +37,29 @@ class License(db.Model):
     last_login_at = db.Column(db.DateTime)
     last_login_ip = db.Column(db.String(120))
     error_counter = db.Column(db.Integer, default=0)
-    tool = db.Column(db.String(120))
-    expiry_date = db.Column(db.DateTime)
-    client_version = db.Column(db.String(20))
+    tool = db.Column(db.String(120))                 # Für welches Tool/Programm die Lizenz gilt
+    expiry_date = db.Column(db.DateTime)             # Ablaufdatum der Lizenz
+    client_version = db.Column(db.String(20))        # Vom Client gemeldete Version
     error_logs = db.relationship('ErrorLog', backref='license', lazy=True)
 
-# Datenbankmodell für ein Fehlerlog
 class ErrorLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     license_id = db.Column(db.Integer, db.ForeignKey('license.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     message = db.Column(db.String(255))
 
-# Datenbankmodell für Update-Informationen pro Tool/Programm
 class ToolUpdate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    tool = db.Column(db.String(120), nullable=False)
-    version = db.Column(db.String(20), nullable=False)
+    tool = db.Column(db.String(120), nullable=False)   # Name des Tools/Programms
+    version = db.Column(db.String(20), nullable=False)   # Version des Updates
     download_count = db.Column(db.Integer, default=0)
     last_download_at = db.Column(db.DateTime)
-    update_url = db.Column(db.String(255))
+    update_url = db.Column(db.String(255))               # URL, unter der das Update abrufbar ist
 
 with app.app_context():
     db.create_all()
 
-# Hilfsfunktion zum Vergleich von Versionsnummern (z.B. "2.1" > "2.0")
+# -------------------- Hilfsfunktionen --------------------
 def is_newer_version(client_ver, latest_ver):
     try:
         client_tuple = tuple(map(int, client_ver.split('.')))
@@ -70,7 +68,6 @@ def is_newer_version(client_ver, latest_ver):
     except Exception:
         return False
 
-# Login-Decorator
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -79,18 +76,20 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# -------------------- Routen --------------------
+
 # Route für hochgeladene Dateien
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# API-Endpunkt zur Lizenzüberprüfung mit Versions- und Update-Check
+# API-Endpunkt zur Lizenzüberprüfung, erweitert um Versionsprüfung und Update-Check
 @app.route('/api/verify', methods=['POST'])
 def verify_license():
     data = request.get_json()
     client_id = data.get('ClientID')
     license_key = data.get('Lizenz')
-    client_version = data.get('Version')
+    client_version = data.get('Version')  # Vom Client übermittelte Version
     client_ip = data.get('ClientIP') or request.remote_addr
 
     license_record = License.query.filter_by(client_id=client_id, license_key=license_key).first()
@@ -101,9 +100,11 @@ def verify_license():
             'Nachricht': 'Ungültige Lizenzdaten'
         })
 
+    # Speichern der Client-Version, falls mitgeschickt
     if client_version:
         license_record.client_version = client_version
 
+    # Lizenz abgelaufen?
     if license_record.expiry_date and license_record.expiry_date < datetime.utcnow():
         license_record.error_counter += 1
         log = ErrorLog(license_id=license_record.id, message="Lizenz abgelaufen")
@@ -115,6 +116,7 @@ def verify_license():
             'Nachricht': 'Lizenz abgelaufen'
         })
 
+    # Double IP Login prüfen
     if license_record.last_login_ip and license_record.last_login_ip != client_ip:
         license_record.error_counter += 1
         log = ErrorLog(license_id=license_record.id, message="Double IP Login")
@@ -126,9 +128,11 @@ def verify_license():
             'Nachricht': 'Double IP Login'
         })
 
+    # Aktualisierung der Login-Daten
     license_record.last_login_at = datetime.utcnow()
     license_record.last_login_ip = client_ip
 
+    # Update-Check: Falls für das jeweilige Tool ein Update existiert, wird dies berücksichtigt.
     update_info = {
         "UpdateAvailable": False,
         "LatestVersion": None,
@@ -152,7 +156,7 @@ def verify_license():
     response.update(update_info)
     return jsonify(response)
 
-# --- Login-Routen und Template ---
+# -------------------- Login-Routen --------------------
 login_template = '''
 <!doctype html>
 <html lang="de">
@@ -163,6 +167,7 @@ login_template = '''
   </head>
   <body>
   <div class="container">
+    <!-- Logo oben -->
     <div class="mt-3 text-center">
       <img src="https://s20.directupload.net/images/240723/oejqar3j.png" alt="Logo" style="max-height: 50px;">
     </div>
@@ -207,7 +212,7 @@ def logout():
     session.pop('logged_in', None)
     return redirect(url_for('login'))
 
-# --- Dashboard und Lizenzverwaltung ---
+# -------------------- Dashboard & Lizenzverwaltung --------------------
 dashboard_template = '''
 <!doctype html>
 <html lang="de">
@@ -218,6 +223,7 @@ dashboard_template = '''
   </head>
   <body>
   <div class="container">
+    <!-- Logo im Header -->
     <div class="mt-3 text-center">
       <img src="https://s20.directupload.net/images/240723/oejqar3j.png" alt="Logo" style="max-height: 50px;">
     </div>
@@ -385,7 +391,8 @@ error_log_template = '''
 </html>
 '''
 
-# --- Update Manager: gruppiert nach Tool/Programm, mit Logo im Header ---
+# -------------------- Update Manager --------------------
+# Template für den Update Manager, gruppiert nach Tool/Programm mit Logo im Header
 update_dashboard_template = '''
 <!doctype html>
 <html lang="de">
@@ -396,6 +403,7 @@ update_dashboard_template = '''
   </head>
   <body>
   <div class="container">
+    <!-- Logo im Header -->
     <div class="mt-3 text-center">
       <img src="https://s20.directupload.net/images/240723/oejqar3j.png" alt="Logo" style="max-height: 50px;">
     </div>
@@ -458,8 +466,12 @@ upload_update_template = '''
         <input type="text" name="version" class="form-control" required>
       </div>
       <div class="form-group">
-        <label>Update-Datei (ZIP):</label>
-        <input type="file" name="update_file" class="form-control-file" required>
+        <label>Externer Link (optional):</label>
+        <input type="text" name="external_link" class="form-control" placeholder="https://github.com/...">
+      </div>
+      <div class="form-group">
+        <label>Update-Datei (ZIP) (optional):</label>
+        <input type="file" name="update_file" class="form-control-file">
       </div>
       <button type="submit" class="btn btn-primary">Upload</button>
     </form>
@@ -473,6 +485,7 @@ upload_update_template = '''
 @app.route('/updates')
 @login_required
 def updates():
+    # Alle Updates abrufen und nach Tool gruppieren
     updates_all = ToolUpdate.query.order_by(ToolUpdate.tool, ToolUpdate.id.desc()).all()
     grouped_updates = {}
     for upd in updates_all:
@@ -485,15 +498,23 @@ def upload_update():
     if request.method == 'POST':
         tool = request.form.get('tool')
         version = request.form.get('version')
+        external_link = request.form.get('external_link')
         file = request.files.get('update_file')
-        if not file:
-            flash("Keine Datei ausgewählt!")
+
+        if not file and not external_link:
+            flash("Entweder eine Datei oder einen externen Link angeben!")
             return redirect(url_for('upload_update'))
-        filename = secure_filename(file.filename)
-        unique_filename = f"{uuid.uuid4().hex}_{filename}"
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-        file.save(file_path)
-        update_url = f"{BASE_DOMAIN}/uploads/{unique_filename}"
+
+        file_path = None
+        if file:
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4().hex}_{filename}"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            file.save(file_path)
+            update_url = f"{BASE_DOMAIN}/uploads/{unique_filename}"
+        else:
+            update_url = external_link
+
         new_update = ToolUpdate(tool=tool, version=version, update_url=update_url)
         db.session.add(new_update)
         db.session.commit()
@@ -514,7 +535,7 @@ def download_update(update_id):
 @login_required
 def delete_update(update_id):
     update = ToolUpdate.query.get_or_404(update_id)
-    if update.update_url:
+    if update.update_url and update.update_url.startswith(BASE_DOMAIN):
         filename = update.update_url.rsplit('/', 1)[-1]
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         if os.path.exists(file_path):
@@ -524,7 +545,7 @@ def delete_update(update_id):
     flash("Update erfolgreich gelöscht!")
     return redirect(url_for('updates'))
 
-# --- Bestehende Routen für Lizenzverwaltung ---
+# -------------------- Bestehende Routen für Lizenzverwaltung --------------------
 @app.route('/')
 @app.route('/dashboard')
 @login_required
@@ -599,4 +620,4 @@ def error_log(license_id):
     return render_template_string(error_log_template, license=license_record, error_logs=error_logs)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=PORT, debug=True)
+    app.run(host="0.0.0.0", port=5200, debug=True)
