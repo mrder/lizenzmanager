@@ -21,8 +21,8 @@ Dieses Projekt wurde für den Einsatz als Docker-Container vorbereitet. Du kanns
 1. **Repository klonen:**
 
    ```bash
-   git clone https://github.com/dein-benutzername/dein-repo.git
-   cd dein-repo
+   git clone https://github.com/mrder/lizenzmanager.git
+   cd lizenzmanager
 
 ## Installation via Docker
 
