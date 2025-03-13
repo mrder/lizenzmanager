@@ -10,10 +10,10 @@ from datetime import timedelta
 # Umgebungsvariablen mit Defaults
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads'))
 PORT = int(os.environ.get('PORT', 5200))
-SECRET_KEY = os.environ.get('SECRET_KEY', 'a1s2d3f4g5h6j7k8l8ö9')
-BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://sonnystools.sonnyathome.online')
+SECRET_KEY = os.environ.get('SECRET_KEY', '123456')
+BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://localhost')
 USERNAME = os.environ.get('USERNAME', 'admin')
-PASSWORD = os.environ.get('PASSWORD', 'secret1991')
+PASSWORD = os.environ.get('PASSWORD', 'admin')
 # Persistente Datenbank-URI: Falls nicht gesetzt, wird "licenses.db" im aktuellen Verzeichnis verwendet.
 DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:///licenses.db')
 
