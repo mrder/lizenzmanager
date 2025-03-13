@@ -15,7 +15,7 @@ BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://localhost')
 USERNAME = os.environ.get('USERNAME', 'admin')
 PASSWORD = os.environ.get('PASSWORD', 'admin')
 # Persistente Datenbank-URI: Falls nicht gesetzt, wird "licenses.db" im aktuellen Verzeichnis verwendet.
-DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:///licenses.db')
+DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:////data/licenses.db')
 
 BASE_DIR = os.path.abspath(".")
 if not os.path.exists(UPLOAD_FOLDER):
