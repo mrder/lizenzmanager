@@ -7,15 +7,16 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import timedelta
 
-# Umgebungsvariablen mit Defaults
+# Persistente Datenbank-URI: Falls nicht gesetzt, wird die DB unter /data/licenses.db angelegt.
+DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:////data/licenses.db')
+
+# Weitere Umgebungsvariablen mit Defaults
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads'))
 PORT = int(os.environ.get('PORT', 5200))
 SECRET_KEY = os.environ.get('SECRET_KEY', '123456')
 BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://localhost')
 USERNAME = os.environ.get('USERNAME', 'admin')
 PASSWORD = os.environ.get('PASSWORD', 'admin')
-# Persistente Datenbank-URI: Falls nicht gesetzt, wird "licenses.db" im aktuellen Verzeichnis verwendet.
-DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:////data/licenses.db')
 
 BASE_DIR = os.path.abspath(".")
 if not os.path.exists(UPLOAD_FOLDER):
