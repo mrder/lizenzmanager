@@ -1,4 +1,4 @@
-import os, sys, uuid, datetime, requests, json, threading, time
+import os, sys, uuid, datetime, requests, json, threading, time, shutil
 from flask import Flask, request, jsonify, render_template_string, redirect, url_for, session, flash, send_from_directory, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -7,18 +7,18 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import timedelta
 
-# Persistente Datenbank-URI: Falls nicht gesetzt, wird die DB unter /data/licenses.db angelegt.
+# Persistente Datenbank-URI: Falls nicht gesetzt, wird die DB unter /data/licenses.db abgelegt.
 DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:////data/licenses.db')
 
 # Weitere Umgebungsvariablen mit Defaults
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads'))
 PORT = int(os.environ.get('PORT', 5200))
-SECRET_KEY = os.environ.get('SECRET_KEY', '123456')
-BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://localhost')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'a1s2d3f4g5h6j7k8l8ö9')
+BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://sonnystools.sonnyathome.online')
 USERNAME = os.environ.get('USERNAME', 'admin')
-PASSWORD = os.environ.get('PASSWORD', 'admin')
+PASSWORD = os.environ.get('PASSWORD', 'secret1991')
 
-# Stelle sicher, dass das persistente Verzeichnis für die DB existiert (wenn nicht, erstelle es)
+# Sicherstellen, dass das persistente Verzeichnis für die DB existiert
 db_dir = '/data'
 if not os.path.exists(db_dir):
     os.makedirs(db_dir)
@@ -168,6 +168,74 @@ def verify_license():
     response.update(update_info)
     return jsonify(response)
 
+# -------------------- Backup-Routen --------------------
+@app.route('/backup/download')
+@login_required
+def backup_download():
+    # Ermitteln des Datenbankpfads aus DATABASE_URI
+    if DATABASE_URI.startswith("sqlite:///"):
+        db_path = DATABASE_URI.replace("sqlite:///", "", 1)
+    else:
+        db_path = os.path.join(BASE_DIR, "licenses.db")
+    return send_from_directory(os.path.dirname(db_path), os.path.basename(db_path), as_attachment=True, download_name="licenses.db")
+
+@app.route('/backup/upload', methods=['GET', 'POST'])
+@login_required
+def backup_upload():
+    if request.method == 'POST':
+        if 'backup_file' not in request.files:
+            flash("Keine Datei ausgewählt")
+            return redirect(request.url)
+        file = request.files['backup_file']
+        if file.filename == "":
+            flash("Keine Datei ausgewählt")
+            return redirect(request.url)
+        if not file.filename.lower().endswith('.db'):
+            flash("Ungültige Dateiendung. Bitte eine .db-Datei hochladen.")
+            return redirect(request.url)
+        temp_path = os.path.join(UPLOAD_FOLDER, "temp_backup.db")
+        file.save(temp_path)
+        if DATABASE_URI.startswith("sqlite:///"):
+            db_path = DATABASE_URI.replace("sqlite:///", "", 1)
+        else:
+            db_path = os.path.join(BASE_DIR, "licenses.db")
+        db.session.remove()
+        try:
+            shutil.copy(temp_path, db_path)
+            flash("Backup erfolgreich wiederhergestellt. Bitte starten Sie die Anwendung neu.")
+        except Exception as e:
+            flash(f"Fehler beim Wiederherstellen des Backups: {str(e)}")
+        finally:
+            os.remove(temp_path)
+        return redirect(url_for('dashboard'))
+    upload_form = '''
+    <!doctype html>
+    <html lang="de">
+      <head>
+        <meta charset="utf-8">
+        <title>Backup hochladen</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+      </head>
+      <body>
+        ''' + HEADER_HTML + '''
+        <div class="container">
+          <h1 class="mt-4">Backup hochladen</h1>
+          <form method="post" enctype="multipart/form-data">
+            <div class="form-group">
+              <label>Backup-Datei (.db):</label>
+              <input type="file" name="backup_file" class="form-control-file" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Hochladen und Wiederherstellen</button>
+          </form>
+          <br>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Zurück zum Dashboard</a>
+        </div>
+        ''' + FOOTER_HTML + '''
+      </body>
+    </html>
+    '''
+    return render_template_string(upload_form, base_domain=BASE_DOMAIN)
+
 # -------------------- Login-Routen --------------------
 login_template = '''
 <!doctype html>
@@ -242,6 +310,8 @@ dashboard_template = '''
         <a href="{{ url_for('generate_license') }}" class="btn btn-primary">Neue Lizenz generieren</a>
         <a href="{{ url_for('add_license') }}" class="btn btn-success">Neue Lizenz hinzufügen</a>
         <a href="{{ url_for('updates') }}" class="btn btn-info">Update Manager</a>
+        <a href="{{ url_for('backup_download') }}" class="btn btn-warning">Backup herunterladen</a>
+        <a href="{{ url_for('backup_upload') }}" class="btn btn-warning">Backup hochladen</a>
       </div>
       <table class="table table-striped table-bordered">
         <thead>
