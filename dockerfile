@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Kopiere den restlichen Anwendungscode
 COPY . .
 
-# Setze Standard-Umgebungsvariablen (diese können via Docker-Compose oder im Container überschrieben werden)
+# Setze Standard-Umgebungsvariablen (diese können via Docker Compose überschrieben werden)
 ENV USERNAME=admin
 ENV PASSWORD=admin
 ENV BASE_DOMAIN=http://localhost:5200
@@ -25,5 +25,5 @@ ENV SECRET_KEY=123456
 # Exponiere den Port, auf dem die App läuft
 EXPOSE 5200
 
-# Verwende den entrypoint
-ENTRYPOINT ["./entrypoint.sh"]
+# Verwende /bin/sh, um entrypoint.sh auszuführen
+ENTRYPOINT ["/bin/sh", "./entrypoint.sh"]
