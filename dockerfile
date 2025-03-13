@@ -10,7 +10,7 @@ ENV BASE_DOMAIN=http://localhost:5200
 ENV UPLOAD_FOLDER=/app/uploads
 ENV PORT=5200
 ENV SECRET_KEY=123456
+# Persistente Datenbank-URI (Volume wird in docker-compose gemountet)
 ENV DATABASE_URI=sqlite:////data/licenses.db
 EXPOSE 5200
-
 ENTRYPOINT ["/bin/sh", "./entrypoint.sh"]
