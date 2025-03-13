@@ -26,7 +26,7 @@ Dieses Projekt wurde für den Einsatz als Docker-Container vorbereitet. Du kanns
 
 ## API Anfragen
 
-1. Beispielanfrage:
+**1. Beispielanfrage:**
 
 curl -X POST "https://Domain/api/verify" \
      -H "Content-Type: application/json" \
@@ -34,7 +34,7 @@ curl -X POST "https://Domain/api/verify" \
 	 
 
 
-2. Beispielantwort:
+**2. Beispielantwort:**
 
 {
   "Lizenzstatus": true,
@@ -45,7 +45,7 @@ curl -X POST "https://Domain/api/verify" \
   "UpdateURL": "https://Domain/uploads/abc123_update.zip"
 }
 
-3. Integration
+**3. Integration**
 
 import requests
 
