@@ -10,10 +10,10 @@ from datetime import timedelta
 # Umgebungsvariablen mit Defaults
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads'))
 PORT = int(os.environ.get('PORT', 5200))
-SECRET_KEY = os.environ.get('SECRET_KEY', '123456')
-BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://localhost')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'a1s2d3f4g5h6j7k8l8ö9')
+BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://sonnystools.sonnyathome.online')
 USERNAME = os.environ.get('USERNAME', 'admin')
-PASSWORD = os.environ.get('PASSWORD', 'admin')
+PASSWORD = os.environ.get('PASSWORD', 'secret1991')
 
 BASE_DIR = os.path.abspath(".")
 if not os.path.exists(UPLOAD_FOLDER):
@@ -30,15 +30,19 @@ migrate = Migrate(app, db)
 
 # Gemeinsamer Header und Footer
 HEADER_HTML = '''
-<header style="display: flex; align-items: center; padding: 10px; background-color: #f8f9fa;">
-  <img src="https://raw.githubusercontent.com/mrder/lizenzmanager/refs/heads/main/icon.png" alt="Header Logo" style="max-height: 60px; margin-right: 20px;">
-  <h2 style="margin: 0;">Lizenz Manager</h2>
+<header style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background-color: #f8f9fa;">
+  <div style="flex:1; text-align: left; font-size: 24px; font-weight: bold;">Lizens</div>
+  <div style="flex:1; text-align: center;">
+    <img src="https://raw.githubusercontent.com/mrder/lizenzmanager/refs/heads/main/icon.png" alt="Logo" style="max-height: 60px;">
+  </div>
+  <div style="flex:1; text-align: right; font-size: 24px; font-weight: bold;">Manager</div>
 </header>
 '''
+
 FOOTER_HTML = '''
 <footer style="display: flex; justify-content: center; align-items: center; padding: 10px; background-color: #f8f9fa; margin-top: 20px;">
   <img src="https://s20.directupload.net/images/240723/oejqar3j.png" alt="Footer Logo" style="max-height: 40px; margin-right: 10px;">
-  <p style="margin: 0;">&copy; 2025 Dein Name</p>
+  <p style="margin: 0;">&copy; sonnyathome.online Version 1.1</p>
 </footer>
 '''
 
