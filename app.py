@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import timedelta
 
-# Umgebungsvariablen mit Defaults (können via ENV überschrieben werden)
+# Umgebungsvariablen mit Defaults
 UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads'))
 PORT = int(os.environ.get('PORT', 5200))
 SECRET_KEY = os.environ.get('SECRET_KEY', '123456')
@@ -15,12 +15,11 @@ BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://localhost')
 USERNAME = os.environ.get('USERNAME', 'admin')
 PASSWORD = os.environ.get('PASSWORD', 'admin')
 
-# Basisverzeichnis
+# Basisverzeichnis und Upload-Ordner sicherstellen
 BASE_DIR = os.path.abspath(".")
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Flask App-Konfiguration
 app = Flask(__name__, static_folder=BASE_DIR, template_folder=BASE_DIR)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///licenses.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -396,6 +395,7 @@ error_log_template = '''
 </html>
 '''
 
+# -------------------- Update Manager --------------------
 update_dashboard_template = '''
 <!doctype html>
 <html lang="de">
