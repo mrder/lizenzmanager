@@ -15,7 +15,6 @@ BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://localhost')
 USERNAME = os.environ.get('USERNAME', 'admin')
 PASSWORD = os.environ.get('PASSWORD', 'admin')
 
-# Basisverzeichnis und Upload-Ordner sicherstellen
 BASE_DIR = os.path.abspath(".")
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -29,7 +28,7 @@ app.secret_key = SECRET_KEY
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# Gemeinsamer Header und Footer (für alle Seiten)
+# Gemeinsamer Header und Footer
 HEADER_HTML = '''
 <header style="display: flex; align-items: center; padding: 10px; background-color: #f8f9fa;">
   <img src="https://raw.githubusercontent.com/mrder/lizenzmanager/refs/heads/main/icon.png" alt="Header Logo" style="max-height: 60px; margin-right: 20px;">
