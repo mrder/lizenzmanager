@@ -24,7 +24,7 @@ Dieses Projekt wurde für den Einsatz als Docker-Container vorbereitet. Du kanns
    git clone https://github.com/mrder/lizenzmanager.git
    cd lizenzmanager
 
-## Installation via Docker
+## API Anfragen
 
 1. Beispielanfrage:
 
