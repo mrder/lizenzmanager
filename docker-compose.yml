@@ -11,5 +11,6 @@ services:
       - PASSWORD=admin
       - BASE_DOMAIN=https://sonnystools.sonnyathome.online
       - UPLOAD_FOLDER=/app/uploads
+      - DATABASE_URI=sqlite:////data/licenses.db
       - PORT=5200
       - SECRET_KEY=123456
