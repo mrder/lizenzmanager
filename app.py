@@ -18,10 +18,16 @@ BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://localhost')
 USERNAME = os.environ.get('USERNAME', 'admin')
 PASSWORD = os.environ.get('PASSWORD', 'admin')
 
-BASE_DIR = os.path.abspath(".")
+# Stelle sicher, dass das persistente Verzeichnis für die DB existiert (wenn nicht, erstelle es)
+db_dir = '/data'
+if not os.path.exists(db_dir):
+    os.makedirs(db_dir)
+
+# Sicherstellen, dass der Upload-Ordner existiert
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+BASE_DIR = os.path.abspath(".")
 app = Flask(__name__, static_folder=BASE_DIR, template_folder=BASE_DIR)
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
