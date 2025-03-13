@@ -14,13 +14,15 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'a1s2d3f4g5h6j7k8l8ö9')
 BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'https://sonnystools.sonnyathome.online')
 USERNAME = os.environ.get('USERNAME', 'admin')
 PASSWORD = os.environ.get('PASSWORD', 'secret1991')
+# Persistente Datenbank-URI: Falls nicht gesetzt, wird "licenses.db" im aktuellen Verzeichnis verwendet.
+DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:///licenses.db')
 
 BASE_DIR = os.path.abspath(".")
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 app = Flask(__name__, static_folder=BASE_DIR, template_folder=BASE_DIR)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///licenses.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.secret_key = SECRET_KEY
@@ -30,18 +32,16 @@ migrate = Migrate(app, db)
 
 # Gemeinsamer Header und Footer
 HEADER_HTML = '''
-<header style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background-color: #f8f9fa;">
-  <div style="flex:1; text-align: left; font-size: 24px; font-weight: bold;">Lizens</div>
-  <div style="flex:1; text-align: center;">
-    <img src="https://raw.githubusercontent.com/mrder/lizenzmanager/refs/heads/main/icon.png" alt="Logo" style="max-height: 60px;">
-  </div>
-  <div style="flex:1; text-align: right; font-size: 24px; font-weight: bold;">Manager</div>
+<header style="display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; padding: 10px;">
+  <span style="font-size: 24px; font-weight: bold; margin-right: 5px;">Lizens</span>
+  <img src="https://raw.githubusercontent.com/mrder/lizenzmanager/refs/heads/main/icon.png" alt="Logo" style="max-height: 60px; margin: 0 5px;">
+  <span style="font-size: 24px; font-weight: bold; margin-left: 5px;">Manager</span>
 </header>
 '''
 
 FOOTER_HTML = '''
-<footer style="display: flex; justify-content: center; align-items: center; padding: 10px; background-color: #f8f9fa; margin-top: 20px;">
-  <img src="https://s20.directupload.net/images/240723/oejqar3j.png" alt="Footer Logo" style="max-height: 40px; margin-right: 10px;">
+<footer style="display: flex; justify-content: center; align-items: center; background-color: #f8f9fa; padding: 10px; margin-top: 20px;">
+  <img src="https://s20.directupload.net/images/240723/oejqar3j.png" alt="Footer Logo" style="max-height: 40px; margin-right: 5px;">
   <p style="margin: 0;">&copy; sonnyathome.online Version 1.1</p>
 </footer>
 '''
