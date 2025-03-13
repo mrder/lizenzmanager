@@ -1,13 +1,40 @@
 <Environment>
-  <!-- Deine gewünschten Variablen -->
   <Variable>
     <Name>USERNAME</Name>
     <Value>admin</Value>
     <Mode>string</Mode>
     <Description>Benutzername für den Login</Description>
   </Variable>
-  <!-- ... weitere gewünschte Variablen ... -->
-
+  <Variable>
+    <Name>PASSWORD</Name>
+    <Value>admin</Value>
+    <Mode>string</Mode>
+    <Description>Passwort für den Login</Description>
+  </Variable>
+  <Variable>
+    <Name>BASE_DOMAIN</Name>
+    <Value>http://localhost:5200</Value>
+    <Mode>string</Mode>
+    <Description>Basis-URL der Anwendung</Description>
+  </Variable>
+  <Variable>
+    <Name>UPLOAD_FOLDER</Name>
+    <Value>/app/uploads</Value>
+    <Mode>string</Mode>
+    <Description>Ordner, in dem Uploads gespeichert werden</Description>
+  </Variable>
+  <Variable>
+    <Name>PORT</Name>
+    <Value>5200</Value>
+    <Mode>string</Mode>
+    <Description>Port, auf dem die App läuft</Description>
+  </Variable>
+  <Variable>
+    <Name>SECRET_KEY</Name>
+    <Value>123456</Value>
+    <Mode>string</Mode>
+    <Description>Geheimer Schlüssel für Sessions</Description>
+  </Variable>
   <!-- Unerwünschte Variablen ausblenden -->
   <Variable Hidden="true">
     <Name>LANG</Name>
