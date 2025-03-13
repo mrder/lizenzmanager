@@ -16,11 +16,11 @@ COPY . .
 
 # Setze die globalen Umgebungsvariablen, die in der app.py verwendet werden
 ENV USERNAME=admin
-ENV PASSWORD=secret1991
+ENV PASSWORD=admin
 ENV BASE_DOMAIN=http://localhost:5200
 ENV UPLOAD_FOLDER=/app/uploads
 ENV PORT=5200
-ENV SECRET_KEY=a1s2d3f4g5h6j7k8l8ö9
+ENV SECRET_KEY=123456
 
 # Exponiere den Port, auf dem die App läuft
 EXPOSE 5200
