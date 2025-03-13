@@ -5,12 +5,13 @@ services:
     ports:
       - "${PORT:-5200}:${PORT:-5200}"
     volumes:
-      - ./data:/app  # Stelle sicher, dass hier die licenses.db persistent gespeichert wird
+      - ./data:/data
+      - ./uploads:/app/uploads
     environment:
-      - USERNAME=admin
-      - PASSWORD=admin
-      - BASE_DOMAIN=https://sonnystools.sonnyathome.online
-      - UPLOAD_FOLDER=/app/uploads
       - DATABASE_URI=sqlite:////data/licenses.db
+      - UPLOAD_FOLDER=/app/uploads
       - PORT=5200
       - SECRET_KEY=123456
+      - BASE_DOMAIN=https://localhost
+      - USERNAME=admin
+      - PASSWORD=admin
