@@ -76,7 +76,6 @@ class ErrorLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     message = db.Column(db.String(255))
 
-
 class ToolUpdate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tool = db.Column(db.String(120), nullable=False)
@@ -111,11 +110,16 @@ def verify_license():
     client_version = data.get('Version')
     client_ip = data.get('ClientIP') or request.remote_addr
 
+    # Versuch, den Lizenzdatensatz anhand von ClientID und Lizenz zu finden
     license_record = License.query.filter_by(client_id=client_id, license_key=license_key).first()
     if not license_record:
-        # Logeintrag ohne license_id, da die übermittelten Daten ungültig sind.
-        log_message = f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}"
-        log = ErrorLog(message=log_message)
+        # Falls die ClientID existiert, logge den Fehler mit der vorhandenen Lizenz-ID
+        license_by_client = License.query.filter_by(client_id=client_id).first()
+        if license_by_client:
+            log = ErrorLog(license_id=license_by_client.id,
+                           message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}")
+        else:
+            log = ErrorLog(message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}")
         db.session.add(log)
         db.session.commit()
         
