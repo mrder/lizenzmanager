@@ -111,6 +111,12 @@ def verify_license():
 
     license_record = License.query.filter_by(client_id=client_id, license_key=license_key).first()
     if not license_record:
+        # Fehlerlog erstellen mit den übermittelten, aber ungültigen Lizenzdaten
+        log_message = f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}"
+        log = ErrorLog(message=log_message)
+        db.session.add(log)
+        db.session.commit()
+        
         return jsonify({
             'Lizenzstatus': False,
             'Ablaufdatum': None,
