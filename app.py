@@ -71,9 +71,11 @@ class License(db.Model):
 
 class ErrorLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    license_id = db.Column(db.Integer, db.ForeignKey('license.id'), nullable=False)
+    # license_id ist nun optional, damit Logs auch ohne zugeordnete Lizenz gespeichert werden können.
+    license_id = db.Column(db.Integer, db.ForeignKey('license.id'), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     message = db.Column(db.String(255))
+
 
 class ToolUpdate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -111,7 +113,7 @@ def verify_license():
 
     license_record = License.query.filter_by(client_id=client_id, license_key=license_key).first()
     if not license_record:
-        # Fehlerlog erstellen mit den übermittelten, aber ungültigen Lizenzdaten
+        # Logeintrag ohne license_id, da die übermittelten Daten ungültig sind.
         log_message = f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}"
         log = ErrorLog(message=log_message)
         db.session.add(log)
