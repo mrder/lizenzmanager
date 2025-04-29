@@ -1,5 +1,15 @@
-import os, sys, uuid, datetime, requests, json, threading, time, shutil
+import os
+import sys
+import uuid
+import datetime
+import requests
+import json
+import threading
+import time
+import shutil
+import ipaddress
 from flask import Flask, request, jsonify, render_template_string, redirect, url_for, session, flash, send_from_directory, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from functools import wraps
@@ -34,6 +44,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.secret_key = SECRET_KEY
 
+# Damit hinter Reverse-Proxies (Nginx, Traefik o.ä.) die echten IPs ankommen:
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -67,12 +80,21 @@ class License(db.Model):
     tool = db.Column(db.String(120))
     expiry_date = db.Column(db.DateTime)
     client_version = db.Column(db.String(20))
-    error_logs = db.relationship('ErrorLog', backref='license', lazy=True)
+    error_logs = db.relationship(
+        'ErrorLog',
+        backref='license',
+        lazy=True,
+        cascade='all, delete-orphan',
+        passive_deletes=True
+    )
 
 class ErrorLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    # license_id ist nun optional, damit Logs auch ohne zugeordnete Lizenz gespeichert werden können.
-    license_id = db.Column(db.Integer, db.ForeignKey('license.id'), nullable=True)
+    license_id = db.Column(
+        db.Integer,
+        db.ForeignKey('license.id', ondelete='CASCADE'),
+        nullable=True
+    )
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     message = db.Column(db.String(255))
 
@@ -93,6 +115,13 @@ def is_newer_version(client_ver, latest_ver):
     except Exception:
         return False
 
+def is_public_ip(ip):
+    try:
+        addr = ipaddress.ip_address(ip)
+        return not addr.is_private and not addr.is_loopback
+    except ValueError:
+        return False
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -101,6 +130,21 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def get_client_ip():
+    if request.json and request.json.get('ClientIP'):
+        return request.json['ClientIP']
+    header = request.headers.get('X-Forwarded-For') or request.headers.get('X-Real-IP')
+    if header:
+        for ip in [h.strip() for h in header.split(',')]:
+            try:
+                addr = ipaddress.ip_address(ip)
+                if not addr.is_private and not addr.is_loopback:
+                    return ip
+            except ValueError:
+                continue
+        return header.split(',')[0].strip()
+    return request.remote_addr
+
 # -------------------- Lizenz-API --------------------
 @app.route('/api/verify', methods=['POST'])
 def verify_license():
@@ -108,21 +152,22 @@ def verify_license():
     client_id = data.get('ClientID')
     license_key = data.get('Lizenz')
     client_version = data.get('Version')
-    client_ip = data.get('ClientIP') or request.remote_addr
+    client_ip = get_client_ip()
 
-    # Versuch, den Lizenzdatensatz anhand von ClientID und Lizenz zu finden
     license_record = License.query.filter_by(client_id=client_id, license_key=license_key).first()
     if not license_record:
-        # Falls die ClientID existiert, logge den Fehler mit der vorhandenen Lizenz-ID
         license_by_client = License.query.filter_by(client_id=client_id).first()
         if license_by_client:
-            log = ErrorLog(license_id=license_by_client.id,
-                           message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}")
+            log = ErrorLog(
+                license_id=license_by_client.id,
+                message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}"
+            )
         else:
-            log = ErrorLog(message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}")
+            log = ErrorLog(
+                message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}"
+            )
         db.session.add(log)
         db.session.commit()
-        
         return jsonify({
             'Lizenzstatus': False,
             'Ablaufdatum': None,
@@ -143,7 +188,8 @@ def verify_license():
             'Nachricht': 'Lizenz abgelaufen'
         })
 
-    if license_record.last_login_ip and license_record.last_login_ip != client_ip:
+    # IP-Wechsel prüfen, nur wenn neue IP öffentlich ist
+    if license_record.last_login_ip and license_record.last_login_ip != client_ip and is_public_ip(client_ip):
         license_record.error_counter += 1
         log = ErrorLog(license_id=license_record.id, message="Double IP Login")
         db.session.add(log)
@@ -184,12 +230,16 @@ def verify_license():
 @app.route('/backup/download')
 @login_required
 def backup_download():
-    # Ermitteln des Datenbankpfads aus DATABASE_URI
     if DATABASE_URI.startswith("sqlite:///"):
         db_path = DATABASE_URI.replace("sqlite:///", "", 1)
     else:
         db_path = os.path.join(BASE_DIR, "licenses.db")
-    return send_from_directory(os.path.dirname(db_path), os.path.basename(db_path), as_attachment=True, download_name="licenses.db")
+    return send_from_directory(
+        os.path.dirname(db_path),
+        os.path.basename(db_path),
+        as_attachment=True,
+        download_name="licenses.db"
+    )
 
 @app.route('/backup/upload', methods=['GET', 'POST'])
 @login_required
@@ -220,6 +270,7 @@ def backup_upload():
         finally:
             os.remove(temp_path)
         return redirect(url_for('dashboard'))
+
     upload_form = '''
     <!doctype html>
     <html lang="de">
@@ -261,22 +312,10 @@ login_template = '''
     ''' + HEADER_HTML + '''
     <div class="container">
       <h1 class="mt-4">Login</h1>
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          {% for message in messages %}
-            <div class="alert alert-danger">{{ message }}</div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
+      {% with messages = get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="alert alert-danger">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
       <form method="post">
-        <div class="form-group">
-          <label>Nutzername:</label>
-          <input type="text" name="username" class="form-control">
-        </div>
-        <div class="form-group">
-          <label>Passwort:</label>
-          <input type="password" name="password" class="form-control">
-        </div>
+        <div class="form-group"><label>Nutzername:</label><input type="text" name="username" class="form-control"></div>
+        <div class="form-group"><label>Passwort:</label><input type="password" name="password" class="form-control"></div>
         <button type="submit" class="btn btn-primary">Login</button>
       </form>
     </div>
@@ -305,275 +344,162 @@ def logout():
 # -------------------- Dashboard & Lizenzverwaltung --------------------
 dashboard_template = '''
 <!doctype html>
-<html lang="de">
-  <head>
-    <meta charset="utf-8">
-    <title>Lizenz Dashboard</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  </head>
-  <body>
-    ''' + HEADER_HTML + '''
-    <div class="container">
-      <div class="d-flex justify-content-between align-items-center mt-4">
-        <h1>Lizenz Dashboard</h1>
-        <a href="{{ url_for('logout') }}" class="btn btn-secondary">Logout</a>
-      </div>
-      <div class="mb-3">
-        <a href="{{ url_for('generate_license') }}" class="btn btn-primary">Neue Lizenz generieren</a>
-        <a href="{{ url_for('add_license') }}" class="btn btn-success">Neue Lizenz hinzufügen</a>
-        <a href="{{ url_for('updates') }}" class="btn btn-info">Update Manager</a>
-        <a href="{{ url_for('backup_download') }}" class="btn btn-warning">Backup herunterladen</a>
-        <a href="{{ url_for('backup_upload') }}" class="btn btn-warning">Backup hochladen</a>
-      </div>
-      <table class="table table-striped table-bordered">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Eigentümer</th>
-            <th>ClientID</th>
-            <th>Lizenzschlüssel</th>
-            <th>Erworben am</th>
-            <th>Kontakt</th>
-            <th>Letzter Login</th>
-            <th>Letzte Login IP</th>
-            <th>Fehlercounter</th>
-            <th>Tool/Programm</th>
-            <th>Ablaufdatum</th>
-            <th>Client Version</th>
-            <th>Aktionen</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for lic in licenses %}
-          <tr>
-            <td>{{ lic.id }}</td>
-            <td>{{ lic.owner or '' }}</td>
-            <td>{{ lic.client_id }}</td>
-            <td>{{ lic.license_key }}</td>
-            <td>{{ lic.acquired_at.strftime('%d.%m.%Y %H:%M:%S') if lic.acquired_at else '' }}</td>
-            <td>{{ lic.contact or '' }}</td>
-            <td>{{ lic.last_login_at.strftime('%d.%m.%Y %H:%M:%S') if lic.last_login_at else '' }}</td>
-            <td>{{ lic.last_login_ip or '' }}</td>
-            <td><a href="{{ url_for('error_log', license_id=lic.id) }}">{{ lic.error_counter }}</a></td>
-            <td>{{ lic.tool or '' }}</td>
-            <td>{{ lic.expiry_date.strftime('%d.%m.%Y') if lic.expiry_date else '' }}</td>
-            <td>{{ lic.client_version or '' }}</td>
-            <td>
-              <a href="{{ url_for('edit_license', license_id=lic.id) }}" class="btn btn-warning btn-sm">Bearbeiten</a>
-              <a href="{{ url_for('delete_license', license_id=lic.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Wirklich löschen?');">Löschen</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    ''' + FOOTER_HTML + '''
-  </body>
-</html>
+<html lang="de"><head><meta charset="utf-8"><title>Lizenz Dashboard</title><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"></head><body>
+''' + HEADER_HTML + '''
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mt-4">
+    <h1>Lizenz Dashboard</h1>
+    <a href="{{ url_for('logout') }}" class="btn btn-secondary">Logout</a>
+  </div>
+  <div class="mb-3">
+    <a href="{{ url_for('generate_license') }}" class="btn btn-primary">Neue Lizenz generieren</a>
+    <a href="{{ url_for('add_license') }}" class="btn btn-success">Neue Lizenz hinzufügen</a>
+    <a href="{{ url_for('updates') }}" class="btn btn-info">Update Manager</a>
+    <a href="{{ url_for('backup_download') }}" class="btn btn-warning">Backup herunterladen</a>
+    <a href="{{ url_for('backup_upload') }}" class="btn btn-warning">Backup hochladen</a>
+  </div>
+  <table class="table table-striped table-bordered">
+    <thead><tr>
+      <th>ID</th><th>Eigentümer</th><th>ClientID</th><th>Lizenzschlüssel</th><th>Erworben am</th><th>Kontakt</th>
+      <th>Letzter Login</th><th>Letzte Login IP</th><th>Fehlercounter</th><th>Tool/Programm</th>
+      <th>Ablaufdatum</th><th>Client Version</th><th>Aktionen</th>
+    </tr></thead>
+    <tbody>
+      {% for lic in licenses %}
+      <tr>
+        <td>{{ lic.id }}</td>
+        <td>{{ lic.owner or '' }}</td>
+        <td>{{ lic.client_id }}</td>
+        <td>{{ lic.license_key }}</td>
+        <td>{{ lic.acquired_at.strftime('%d.%m.%Y %H:%M:%S') if lic.acquired_at else '' }}</td>
+        <td>{{ lic.contact or '' }}</td>
+        <td>{{ lic.last_login_at.strftime('%d.%m.%Y %H:%M:%S') if lic.last_login_at else '' }}</td>
+        <td>{{ lic.last_login_ip or '' }}</td>
+        <td><a href="{{ url_for('error_log', license_id=lic.id) }}">{{ lic.error_counter }}</a></td>
+        <td>{{ lic.tool or '' }}</td>
+        <td>{{ lic.expiry_date.strftime('%d.%m.%Y') if lic.expiry_date else '' }}</td>
+        <td>{{ lic.client_version or '' }}</td>
+        <td>
+          <a href="{{ url_for('edit_license', license_id=lic.id) }}" class="btn btn-warning btn-sm">Bearbeiten</a>
+          <a href="{{ url_for('delete_license', license_id=lic.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Wirklich löschen?');">Löschen</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+''' + FOOTER_HTML + '''
+</body></html>
 '''
 
 add_template = '''
-<!doctype html>
-<html lang="de">
-  <head>
-    <meta charset="utf-8">
-    <title>Neue Lizenz hinzufügen</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  </head>
-  <body>
-    ''' + HEADER_HTML + '''
-    <div class="container">
-      <h1 class="mt-4">Neue Lizenz hinzufügen</h1>
-      <form method="post">
-        <div class="form-group">
-          <label>Eigentümer:</label>
-          <input type="text" name="owner" class="form-control">
-        </div>
-        <div class="form-group">
-          <label>Kontakt:</label>
-          <input type="text" name="contact" class="form-control">
-        </div>
-        <div class="form-group">
-          <label>Tool/Programm:</label>
-          <input type="text" name="tool" class="form-control">
-        </div>
-        <div class="form-group">
-          <label>Ablaufdatum (TT.MM.JJJJ):</label>
-          <input type="text" name="expiry_date" class="form-control">
-        </div>
-        <button type="submit" class="btn btn-success">Lizenz hinzufügen</button>
-      </form>
-      <br>
-      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Zurück zum Dashboard</a>
-    </div>
-    ''' + FOOTER_HTML + '''
-  </body>
-</html>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Neue Lizenz hinzufügen</title><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"></head><body>
+''' + HEADER_HTML + '''
+<div class="container">
+  <h1 class="mt-4">Neue Lizenz hinzufügen</h1>
+  <form method="post">
+    <div class="form-group"><label>Eigentümer:</label><input type="text" name="owner" class="form-control"></div>
+    <div class="form-group"><label>Kontakt:</label><input type="text" name="contact" class="form-control"></div>
+    <div class="form-group"><label>Tool/Programm:</label><input type="text" name="tool" class="form-control"></div>
+    <div class="form-group"><label>Ablaufdatum (TT.MM.JJJJ):</label><input type="text" name="expiry_date" class="form-control"></div>
+    <button type="submit" class="btn btn-success">Lizenz hinzufügen</button>
+  </form>
+  <br><a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Zurück zum Dashboard</a>
+</div>
+''' + FOOTER_HTML + '''
+</body></html>
 '''
 
 edit_template = '''
-<!doctype html>
-<html lang="de">
-  <head>
-    <meta charset="utf-8">
-    <title>Lizenz bearbeiten</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  </head>
-  <body>
-    ''' + HEADER_HTML + '''
-    <div class="container">
-      <h1 class="mt-4">Lizenz bearbeiten</h1>
-      <form method="post">
-        <div class="form-group">
-          <label>Eigentümer:</label>
-          <input type="text" name="owner" class="form-control" value="{{ license.owner }}">
-        </div>
-        <div class="form-group">
-          <label>Kontakt:</label>
-          <input type="text" name="contact" class="form-control" value="{{ license.contact }}">
-        </div>
-        <div class="form-group">
-          <label>Tool/Programm:</label>
-          <input type="text" name="tool" class="form-control" value="{{ license.tool }}">
-        </div>
-        <div class="form-group">
-          <label>Ablaufdatum (TT.MM.JJJJ):</label>
-          <input type="text" name="expiry_date" class="form-control" value="{{ license.expiry_date.strftime('%d.%m.%Y') if license.expiry_date else '' }}">
-        </div>
-        <button type="submit" class="btn btn-success">Speichern</button>
-      </form>
-      <br>
-      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Zurück zum Dashboard</a>
-    </div>
-    ''' + FOOTER_HTML + '''
-  </body>
-</html>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Lizenz bearbeiten</title><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"></head><body>
+''' + HEADER_HTML + '''
+<div class="container">
+  <h1 class="mt-4">Lizenz bearbeiten</h1>
+  <form method="post">
+    <div class="form-group"><label>Eigentümer:</label><input type="text" name="owner" class="form-control" value="{{ license.owner }}"></div>
+    <div class="form-group"><label>Kontakt:</label><input type="text" name="contact" class="form-control" value="{{ license.contact }}"></div>
+    <div class="form-group"><label>Tool/Programm:</label><input type="text" name="tool" class="form-control" value="{{ license.tool }}"></div>
+    <div class="form-group"><label>Ablaufdatum (TT.MM.JJJJ):</label><input type="text" name="expiry_date" class="form-control" value="{{ license.expiry_date.strftime('%d.%m.%Y') if license.expiry_date else '' }}"></div>
+    <button type="submit" class="btn btn-success">Speichern</button>
+  </form>
+  <br><a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Zurück zum Dashboard</a>
+</div>
+''' + FOOTER_HTML + '''
+</body></html>
 '''
 
 error_log_template = '''
-<!doctype html>
-<html lang="de">
-  <head>
-    <meta charset="utf-8">
-    <title>Fehlerlog für Lizenz {{ license.client_id }}</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  </head>
-  <body>
-    ''' + HEADER_HTML + '''
-    <div class="container">
-      <h1 class="mt-4">Fehlerlog für Lizenz {{ license.client_id }}</h1>
-      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mb-3">Zurück zum Dashboard</a>
-      <table class="table table-bordered">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Timestamp</th>
-            <th>Fehlermeldung</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for log in error_logs %}
-          <tr>
-            <td>{{ log.id }}</td>
-            <td>{{ log.timestamp.strftime('%d.%m.%Y %H:%M:%S') }}</td>
-            <td>{{ log.message }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    ''' + FOOTER_HTML + '''
-  </body>
-</html>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Fehlerlog für Lizenz {{ license.client_id }}</title><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"></head><body>
+''' + HEADER_HTML + '''
+<div class="container">
+  <h1 class="mt-4">Fehlerlog für Lizenz {{ license.client_id }}</h1>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mb-3">Zurück zum Dashboard</a>
+  <table class="table table-bordered">
+    <thead><tr><th>ID</th><th>Timestamp</th><th>Fehlermeldung</th></tr></thead>
+    <tbody>
+      {% for log in error_logs %}
+      <tr>
+        <td>{{ log.id }}</td>
+        <td>{{ log.timestamp.strftime('%d.%m.%Y %H:%M:%S') }}</td>
+        <td>{{ log.message }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+''' + FOOTER_HTML + '''
+</body></html>
 '''
 
 # -------------------- Update Manager --------------------
 update_dashboard_template = '''
-<!doctype html>
-<html lang="de">
-  <head>
-    <meta charset="utf-8">
-    <title>Update Manager</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  </head>
-  <body>
-    ''' + HEADER_HTML + '''
-    <div class="container">
-      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mb-3">Zurück zum Dashboard</a>
-      <a href="{{ url_for('upload_update') }}" class="btn btn-success mb-3">Neues Update hochladen</a>
-      {% for tool, updates in grouped_updates.items() %}
-        <h3 class="mt-4">{{ tool }}</h3>
-        <table class="table table-striped table-bordered">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Version</th>
-              <th>Download Count</th>
-              <th>Letzter Download</th>
-              <th>Update Link</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for upd in updates %}
-            <tr>
-              <td>{{ upd.id }}</td>
-              <td>{{ upd.version }}</td>
-              <td>{{ upd.download_count }}</td>
-              <td>{{ upd.last_download_at.strftime('%d.%m.%Y %H:%M:%S') if upd.last_download_at else '' }}</td>
-              <td><a href="{{ upd.update_url }}" target="_blank">{{ upd.update_url }}</a></td>
-              <td>
-                <a href="{{ url_for('download_update', update_id=upd.id) }}" class="btn btn-primary btn-sm">Download</a>
-                <a href="{{ url_for('delete_update', update_id=upd.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Update wirklich löschen?');">Löschen</a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% endfor %}
-    </div>
-    ''' + FOOTER_HTML + '''
-  </body>
-</html>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Update Manager</title><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"></head><body>
+''' + HEADER_HTML + '''
+<div class="container">
+  <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mb-3">Zurück zum Dashboard</a>
+  <a href="{{ url_for('upload_update') }}" class="btn btn-success mb-3">Neues Update hochladen</a>
+  {% for tool, updates in grouped_updates.items() %}
+    <h3 class="mt-4">{{ tool }}</h3>
+    <table class="table table-striped table-bordered">
+      <thead><tr><th>ID</th><th>Version</th><th>Download Count</th><th>Letzter Download</th><th>Update Link</th><th>Aktionen</th></tr></thead>
+      <tbody>
+        {% for upd in updates %}
+        <tr>
+          <td>{{ upd.id }}</td>
+          <td>{{ upd.version }}</td>
+          <td>{{ upd.download_count }}</td>
+          <td>{{ upd.last_download_at.strftime('%d.%m.%Y %H:%M:%S') if upd.last_download_at else '' }}</td>
+          <td><a href="{{ upd.update_url }}" target="_blank">{{ upd.update_url }}</a></td>
+          <td>
+            <a href="{{ url_for('download_update', update_id=upd.id) }}" class="btn btn-primary btn-sm">Download</a>
+            <a href="{{ url_for('delete_update', update_id=upd.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Update wirklich löschen?');">Löschen</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+</div>
+''' + FOOTER_HTML + '''
+</body></html>
 '''
 
 upload_update_template = '''
-<!doctype html>
-<html lang="de">
-  <head>
-    <meta charset="utf-8">
-    <title>Update hochladen</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  </head>
-  <body>
-    ''' + HEADER_HTML + '''
-    <div class="container">
-      <h1 class="mt-4">Neues Update hochladen</h1>
-      <form method="post" enctype="multipart/form-data">
-        <div class="form-group">
-          <label>Tool/Programm:</label>
-          <input type="text" name="tool" class="form-control" required>
-        </div>
-        <div class="form-group">
-          <label>Version:</label>
-          <input type="text" name="version" class="form-control" required>
-        </div>
-        <div class="form-group">
-          <label>Externer Link (optional):</label>
-          <input type="text" name="external_link" class="form-control" placeholder="https://github.com/...">
-        </div>
-        <div class="form-group">
-          <label>Update-Datei (ZIP) (optional):</label>
-          <input type="file" name="update_file" class="form-control-file">
-        </div>
-        <button type="submit" class="btn btn-primary">Upload</button>
-      </form>
-      <br>
-      <a href="{{ url_for('updates') }}" class="btn btn-secondary">Zurück zum Update Manager</a>
-    </div>
-    ''' + FOOTER_HTML + '''
-  </body>
-</html>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Update hochladen</title><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"></head><body>
+''' + HEADER_HTML + '''
+<div class="container">
+  <h1 class="mt-4">Neues Update hochladen</h1>
+  <form method="post" enctype="multipart/form-data">
+    <div class="form-group"><label>Tool/Programm:</label><input type="text" name="tool" class="form-control" required></div>
+    <div class="form-group"><label>Version:</label><input type="text" name="version" class="form-control" required></div>
+    <div class="form-group"><label>Externer Link (optional):</label><input type="text" name="external_link" class="form-control" placeholder="https://github.com/..."></div>
+    <div class="form-group"><label>Update-Datei (ZIP) (optional):</label><input type="file" name="update_file" class="form-control-file"></div>
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
+  <br><a href="{{ url_for('updates') }}" class="btn btn-secondary">Zurück zum Update Manager</a>
+</div>
+''' + FOOTER_HTML + '''
+</body></html>
 '''
 
 # -------------------- Update Manager Routen --------------------
@@ -594,11 +520,9 @@ def upload_update():
         version = request.form.get('version')
         external_link = request.form.get('external_link')
         file = request.files.get('update_file')
-
         if not file and not external_link:
             flash("Entweder eine Datei oder einen externen Link angeben!")
             return redirect(url_for('upload_update'))
-
         if file:
             filename = secure_filename(file.filename)
             unique_filename = f"{uuid.uuid4().hex}_{filename}"
@@ -607,7 +531,6 @@ def upload_update():
             update_url = f"{BASE_DOMAIN}/uploads/{unique_filename}"
         else:
             update_url = external_link
-
         new_update = ToolUpdate(tool=tool, version=version, update_url=update_url)
         db.session.add(new_update)
         db.session.commit()
@@ -660,9 +583,14 @@ def add_license():
             expiry_date = None
         client_id = uuid.uuid4().hex
         license_key = uuid.uuid4().hex
-        new_license = License(owner=owner, contact=contact, tool=tool,
-                              expiry_date=expiry_date, client_id=client_id,
-                              license_key=license_key)
+        new_license = License(
+            owner=owner,
+            contact=contact,
+            tool=tool,
+            expiry_date=expiry_date,
+            client_id=client_id,
+            license_key=license_key
+        )
         db.session.add(new_license)
         db.session.commit()
         return redirect(url_for('dashboard'))
@@ -699,8 +627,11 @@ def generate_license():
     client_id = uuid.uuid4().hex
     license_key = uuid.uuid4().hex
     expiry_date = datetime.datetime.utcnow() + timedelta(days=365)
-    new_license = License(client_id=client_id, license_key=license_key,
-                          expiry_date=expiry_date)
+    new_license = License(
+        client_id=client_id,
+        license_key=license_key,
+        expiry_date=expiry_date
+    )
     db.session.add(new_license)
     db.session.commit()
     return redirect(url_for('dashboard'))
