@@ -1,5 +1,6 @@
 import os, sys, uuid, datetime, requests, json, threading, time, shutil
 from flask import Flask, request, jsonify, render_template_string, redirect, url_for, session, flash, send_from_directory, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from functools import wraps
@@ -33,6 +34,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.secret_key = SECRET_KEY
+
+# Damit hinter Reverse-Proxies (Nginx, Traefik o.ä.) die echten IPs ankommen:
+# Wir vertrauen einem Proxy-Hop für X-Forwarded-For und X-Forwarded-Proto.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -71,7 +76,6 @@ class License(db.Model):
 
 class ErrorLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    # license_id ist nun optional, damit Logs auch ohne zugeordnete Lizenz gespeichert werden können.
     license_id = db.Column(db.Integer, db.ForeignKey('license.id'), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     message = db.Column(db.String(255))
@@ -101,6 +105,20 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def get_client_ip():
+    """
+    Ermittelt die echte Client-IP:
+      1) aus dem JSON-Payload-Feld 'ClientIP'
+      2) aus dem HTTP-Header 'X-Forwarded-For' (erstes Element)
+      3) aus request.remote_addr (ggf. schon von ProxyFix angepasst)
+    """
+    if request.json and request.json.get('ClientIP'):
+        return request.json['ClientIP']
+    xff = request.headers.get('X-Forwarded-For', '')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.remote_addr
+
 # -------------------- Lizenz-API --------------------
 @app.route('/api/verify', methods=['POST'])
 def verify_license():
@@ -108,12 +126,11 @@ def verify_license():
     client_id = data.get('ClientID')
     license_key = data.get('Lizenz')
     client_version = data.get('Version')
-    client_ip = data.get('ClientIP') or request.remote_addr
+    client_ip = get_client_ip()
 
     # Versuch, den Lizenzdatensatz anhand von ClientID und Lizenz zu finden
     license_record = License.query.filter_by(client_id=client_id, license_key=license_key).first()
     if not license_record:
-        # Falls die ClientID existiert, logge den Fehler mit der vorhandenen Lizenz-ID
         license_by_client = License.query.filter_by(client_id=client_id).first()
         if license_by_client:
             log = ErrorLog(license_id=license_by_client.id,
@@ -122,7 +139,6 @@ def verify_license():
             log = ErrorLog(message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}")
         db.session.add(log)
         db.session.commit()
-        
         return jsonify({
             'Lizenzstatus': False,
             'Ablaufdatum': None,
@@ -132,6 +148,7 @@ def verify_license():
     if client_version:
         license_record.client_version = client_version
 
+    # Ablaufdatum prüfen
     if license_record.expiry_date and license_record.expiry_date < datetime.datetime.utcnow():
         license_record.error_counter += 1
         log = ErrorLog(license_id=license_record.id, message="Lizenz abgelaufen")
@@ -143,6 +160,7 @@ def verify_license():
             'Nachricht': 'Lizenz abgelaufen'
         })
 
+    # IP-Wechsel prüfen
     if license_record.last_login_ip and license_record.last_login_ip != client_ip:
         license_record.error_counter += 1
         log = ErrorLog(license_id=license_record.id, message="Double IP Login")
@@ -154,9 +172,11 @@ def verify_license():
             'Nachricht': 'Double IP Login'
         })
 
+    # Login-Daten aktualisieren
     license_record.last_login_at = datetime.datetime.utcnow()
     license_record.last_login_ip = client_ip
 
+    # Update-Check
     update_info = {
         "UpdateAvailable": False,
         "LatestVersion": None,
@@ -184,7 +204,6 @@ def verify_license():
 @app.route('/backup/download')
 @login_required
 def backup_download():
-    # Ermitteln des Datenbankpfads aus DATABASE_URI
     if DATABASE_URI.startswith("sqlite:///"):
         db_path = DATABASE_URI.replace("sqlite:///", "", 1)
     else:
