@@ -1,4 +1,13 @@
-import os, sys, uuid, datetime, requests, json, threading, time, shutil
+import os
+import sys
+import uuid
+import datetime
+import requests
+import json
+import threading
+import time
+import shutil
+import ipaddress
 from flask import Flask, request, jsonify, render_template_string, redirect, url_for, session, flash, send_from_directory, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_sqlalchemy import SQLAlchemy
@@ -109,14 +118,28 @@ def get_client_ip():
     """
     Ermittelt die echte Client-IP:
       1) aus dem JSON-Payload-Feld 'ClientIP'
-      2) aus dem HTTP-Header 'X-Forwarded-For' (erstes Element)
-      3) aus request.remote_addr (ggf. schon von ProxyFix angepasst)
+      2) aus den HTTP-Headern X-Forwarded-For / X-Real-IP (erstes öffentliche Element)
+      3) aus request.remote_addr (ProxyFix-Fallback)
+    Docker-/Private-Adressen werden automatisch herausgefiltert.
     """
+    # 1) explizit mitgeschickte IP
     if request.json and request.json.get('ClientIP'):
         return request.json['ClientIP']
-    xff = request.headers.get('X-Forwarded-For', '')
-    if xff:
-        return xff.split(',')[0].strip()
+
+    # 2) Proxy-Header prüfen
+    header = request.headers.get('X-Forwarded-For', None) or request.headers.get('X-Real-IP', None)
+    if header:
+        for ip in [h.strip() for h in header.split(',')]:
+            try:
+                addr = ipaddress.ip_address(ip)
+                if not addr.is_private and not addr.is_loopback:
+                    return ip
+            except ValueError:
+                continue
+        # alle Einträge privat? dann ersten zurückgeben
+        return header.split(',')[0].strip()
+
+    # 3) letzter Ausweg
     return request.remote_addr
 
 # -------------------- Lizenz-API --------------------
@@ -133,10 +156,14 @@ def verify_license():
     if not license_record:
         license_by_client = License.query.filter_by(client_id=client_id).first()
         if license_by_client:
-            log = ErrorLog(license_id=license_by_client.id,
-                           message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}")
+            log = ErrorLog(
+                license_id=license_by_client.id,
+                message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}"
+            )
         else:
-            log = ErrorLog(message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}")
+            log = ErrorLog(
+                message=f"Ungültige Lizenzdaten: ClientID {client_id}, Lizenz {license_key}"
+            )
         db.session.add(log)
         db.session.commit()
         return jsonify({
@@ -208,7 +235,12 @@ def backup_download():
         db_path = DATABASE_URI.replace("sqlite:///", "", 1)
     else:
         db_path = os.path.join(BASE_DIR, "licenses.db")
-    return send_from_directory(os.path.dirname(db_path), os.path.basename(db_path), as_attachment=True, download_name="licenses.db")
+    return send_from_directory(
+        os.path.dirname(db_path),
+        os.path.basename(db_path),
+        as_attachment=True,
+        download_name="licenses.db"
+    )
 
 @app.route('/backup/upload', methods=['GET', 'POST'])
 @login_required
@@ -239,6 +271,7 @@ def backup_upload():
         finally:
             os.remove(temp_path)
         return redirect(url_for('dashboard'))
+
     upload_form = '''
     <!doctype html>
     <html lang="de">
@@ -300,7 +333,7 @@ login_template = '''
       </form>
     </div>
     ''' + FOOTER_HTML + '''
-  </body>
+</body>
 </html>
 '''
 
@@ -387,7 +420,7 @@ dashboard_template = '''
       </table>
     </div>
     ''' + FOOTER_HTML + '''
-  </body>
+</body>
 </html>
 '''
 
@@ -426,7 +459,7 @@ add_template = '''
       <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Zurück zum Dashboard</a>
     </div>
     ''' + FOOTER_HTML + '''
-  </body>
+</body>
 </html>
 '''
 
@@ -465,7 +498,7 @@ edit_template = '''
       <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Zurück zum Dashboard</a>
     </div>
     ''' + FOOTER_HTML + '''
-  </body>
+</body>
 </html>
 '''
 
@@ -502,7 +535,7 @@ error_log_template = '''
       </table>
     </div>
     ''' + FOOTER_HTML + '''
-  </body>
+</body>
 </html>
 '''
 
@@ -552,7 +585,7 @@ update_dashboard_template = '''
       {% endfor %}
     </div>
     ''' + FOOTER_HTML + '''
-  </body>
+</body>
 </html>
 '''
 
@@ -591,7 +624,7 @@ upload_update_template = '''
       <a href="{{ url_for('updates') }}" class="btn btn-secondary">Zurück zum Update Manager</a>
     </div>
     ''' + FOOTER_HTML + '''
-  </body>
+</body>
 </html>
 '''
 
@@ -679,9 +712,14 @@ def add_license():
             expiry_date = None
         client_id = uuid.uuid4().hex
         license_key = uuid.uuid4().hex
-        new_license = License(owner=owner, contact=contact, tool=tool,
-                              expiry_date=expiry_date, client_id=client_id,
-                              license_key=license_key)
+        new_license = License(
+            owner=owner,
+            contact=contact,
+            tool=tool,
+            expiry_date=expiry_date,
+            client_id=client_id,
+            license_key=license_key
+        )
         db.session.add(new_license)
         db.session.commit()
         return redirect(url_for('dashboard'))
@@ -718,8 +756,11 @@ def generate_license():
     client_id = uuid.uuid4().hex
     license_key = uuid.uuid4().hex
     expiry_date = datetime.datetime.utcnow() + timedelta(days=365)
-    new_license = License(client_id=client_id, license_key=license_key,
-                          expiry_date=expiry_date)
+    new_license = License(
+        client_id=client_id,
+        license_key=license_key,
+        expiry_date=expiry_date
+    )
     db.session.add(new_license)
     db.session.commit()
     return redirect(url_for('dashboard'))
