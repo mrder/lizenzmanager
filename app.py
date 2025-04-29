@@ -8,7 +8,7 @@ import threading
 import time
 import shutil
 import ipaddress
-from flask import Flask, request, jsonify, render_template_string, redirect, url_for, session, flash, send_from_directory, render_template
+from flask import Flask, request, jsonify, render_template_string, redirect, url_for, session, flash, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -127,7 +127,7 @@ def get_client_ip():
         return request.json['ClientIP']
 
     # 2) Proxy-Header prüfen
-    header = request.headers.get('X-Forwarded-For', None) or request.headers.get('X-Real-IP', None)
+    header = request.headers.get('X-Forwarded-For') or request.headers.get('X-Real-IP')
     if header:
         for ip in [h.strip() for h in header.split(',')]:
             try:
@@ -333,7 +333,7 @@ login_template = '''
       </form>
     </div>
     ''' + FOOTER_HTML + '''
-</body>
+  </body>
 </html>
 '''
 
@@ -420,7 +420,7 @@ dashboard_template = '''
       </table>
     </div>
     ''' + FOOTER_HTML + '''
-</body>
+  </body>
 </html>
 '''
 
@@ -459,7 +459,7 @@ add_template = '''
       <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Zurück zum Dashboard</a>
     </div>
     ''' + FOOTER_HTML + '''
-</body>
+  </body>
 </html>
 '''
 
@@ -498,7 +498,7 @@ edit_template = '''
       <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Zurück zum Dashboard</a>
     </div>
     ''' + FOOTER_HTML + '''
-</body>
+  </body>
 </html>
 '''
 
@@ -535,7 +535,7 @@ error_log_template = '''
       </table>
     </div>
     ''' + FOOTER_HTML + '''
-</body>
+  </body>
 </html>
 '''
 
@@ -585,7 +585,7 @@ update_dashboard_template = '''
       {% endfor %}
     </div>
     ''' + FOOTER_HTML + '''
-</body>
+  </body>
 </html>
 '''
 
@@ -624,7 +624,7 @@ upload_update_template = '''
       <a href="{{ url_for('updates') }}" class="btn btn-secondary">Zurück zum Update Manager</a>
     </div>
     ''' + FOOTER_HTML + '''
-</body>
+  </body>
 </html>
 '''
 
