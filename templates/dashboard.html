@@ -10,6 +10,9 @@
         <th>Owner</th>
         <th>ClientID</th>
         <th>Lizenz</th>
+        <th>Tool/Programm</th>
+        <th>Ablaufdatum</th>
+        <th>Kontakt</th>
         <th>Erworben</th>
         <th>Letzter Login</th>
         <th>Login IP</th>
@@ -25,6 +28,12 @@
         <td>{{ lic.owner or '' }}</td>
         <td>{{ lic.client_id }}</td>
         <td>{{ lic.license_key }}</td>
+        <td>{{ lic.tool or '' }}</td>
+        <td>
+          {{ lic.expiry_date.strftime('%d.%m.%Y') 
+             if lic.expiry_date else '' }}
+        </td>
+        <td>{{ lic.contact or '' }}</td>
         <td>{{ lic.acquired_at.strftime('%d.%m.%Y') }}</td>
         <td>
           {{ lic.last_login_at.strftime('%d.%m.%Y %H:%M:%S') 
@@ -41,7 +50,8 @@
           <a href="{{ url_for('edit_license', license_id=lic.id) }}">
             Bearbeiten
           </a> |
-          <a href="{{ url_for('delete_license', license_id=lic.id) }}">
+          <a href="{{ url_for('delete_license', license_id=lic.id) }}"
+             onclick="return confirm('Wirklich löschen?')">
             Löschen
           </a>
         </td>
