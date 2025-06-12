@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Fehlerlogs für {{ license.client_id }}{% endblock %}
+
+{% block content %}
+  <h2>Fehlerlogs für Client {{ license.client_id }}</h2>
+  <p>
+    <a href="{{ url_for('ack_error', license_id=license.id) }}">Fehler quittieren</a>
+    &nbsp;|&nbsp;
+    <a href="{{ url_for('dashboard') }}">Zurück zum Dashboard</a>
+  </p>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Datum/Zeit</th><th>Nachricht</th></tr>
+    </thead>
+    <tbody>
+      {% for log in error_logs %}
+      <tr>
+        <td>{{ log.id }}</td>
+        <td>{{ log.timestamp.strftime('%d.%m.%Y %H:%M:%S') }}</td>
+        <td>{{ log.message }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

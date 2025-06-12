@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Backup wiederherstellen{% endblock %}
+
+{% block content %}
+  <h2>Backup wiederherstellen</h2>
+  <form method="post" enctype="multipart/form-data">
+    <div>
+      <label>Backup-Datei (.db):</label>
+      <input type="file" name="backup_file" accept=".db" required>
+    </div>
+    <button type="submit">Hochladen und Wiederherstellen</button>
+  </form>
+  <p><a href="{{ url_for('dashboard') }}">Zurück zum Dashboard</a></p>
+{% endblock %}

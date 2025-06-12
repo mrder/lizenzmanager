@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Update-Manager{% endblock %}
+
+{% block content %}
+  <h2>Update-Manager</h2>
+  <p>
+    <a href="{{ url_for('upload_update') }}">Neues Update hochladen</a>
+    &nbsp;|&nbsp;
+    <a href="{{ url_for('dashboard') }}">Zurück zum Dashboard</a>
+  </p>
+
+  {% for tool, updates in grouped_updates.items() %}
+    <section>
+      <h3>{{ tool }}</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Version</th><th>Downloads</th>
+            <th>Letzter Download</th><th>Link</th><th>Aktion</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in updates %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.version }}</td>
+            <td>{{ u.download_count }}</td>
+            <td>{{ u.last_download_at.strftime('%d.%m.%Y %H:%M:%S') if u.last_download_at else '' }}</td>
+            <td><a href="{{ u.update_url }}" target="_blank">Download</a></td>
+            <td>
+              <a href="{{ url_for('download_update', update_id=u.id) }}">Herunterladen</a>
+              &nbsp;|&nbsp;
+              <a href="{{ url_for('delete_update', update_id=u.id) }}"
+                 onclick="return confirm('Wirklich löschen?')">Löschen</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endfor %}
+{% endblock %}

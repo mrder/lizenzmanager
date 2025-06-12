@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Neue Lizenz hinzufügen{% endblock %}
+
+{% block content %}
+  <h2>Neue Lizenz hinzufügen</h2>
+  <form method="post">
+    <div>
+      <label>Eigentümer:</label>
+      <input type="text" name="owner" required>
+    </div>
+    <div>
+      <label>Kontakt:</label>
+      <input type="text" name="contact">
+    </div>
+    <div>
+      <label>Tool/Programm:</label>
+      <input type="text" name="tool">
+    </div>
+    <div>
+      <label>Ablaufdatum (TT.MM.JJJJ):</label>
+      <input type="text" name="expiry_date" placeholder="z.B. 31.12.2025">
+    </div>
+    <button type="submit">Lizenz hinzufügen</button>
+  </form>
+{% endblock %}

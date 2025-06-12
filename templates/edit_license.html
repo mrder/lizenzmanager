@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Lizenz bearbeiten{% endblock %}
+
+{% block content %}
+  <h2>Lizenz bearbeiten</h2>
+  <form method="post">
+    <div>
+      <label>Eigentümer:</label>
+      <input type="text" name="owner" value="{{ license.owner }}">
+    </div>
+    <div>
+      <label>Kontakt:</label>
+      <input type="text" name="contact" value="{{ license.contact }}">
+    </div>
+    <div>
+      <label>Tool/Programm:</label>
+      <input type="text" name="tool" value="{{ license.tool }}">
+    </div>
+    <div>
+      <label>Ablaufdatum (TT.MM.JJJJ):</label>
+      <input type="text" name="expiry_date"
+             value="{{ license.expiry_date.strftime('%d.%m.%Y') if license.expiry_date else '' }}">
+    </div>
+    <button type="submit">Speichern</button>
+  </form>
+{% endblock %}

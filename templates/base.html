@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Lizenz Manager{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <h1><a href="{{ url_for('dashboard') }}">Lizens Manager</a></h1>
+      <nav>
+        <a href="{{ url_for('dashboard') }}"
+           class="{% if active_page=='dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('generate_license') }}"
+           class="{% if active_page=='generate' %}active{% endif %}">Neue Lizenz</a>
+        <a href="{{ url_for('updates') }}"
+           class="{% if active_page=='updates' %}active{% endif %}">Update-Manager</a>
+        <a href="{{ url_for('backup_download') }}"
+           class="{% if active_page=='backup' %}active{% endif %}">Backup</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flashes">
+          {% for msg in messages %}
+            <li>{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    © {{ current_year }} sonnyathome.online • Version {{ app_version }}
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

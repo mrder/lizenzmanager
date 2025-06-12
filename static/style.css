@@ -1,0 +1,135 @@
+/* static/style.css */
+
+/* Reset & Grundlegendes */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: sans-serif;
+  line-height: 1.5;
+  background: #fafafa;
+  color: #333;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: #004080;
+  color: white;
+  padding: 1rem;
+  z-index: 1000;
+}
+header .header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header h1 a {
+  color: white;
+  text-decoration: none;
+}
+header nav a {
+  margin-left: 1rem;
+  color: #ddd;
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+}
+header nav a.active,
+header nav a:hover {
+  background: #0066cc;
+  color: white;
+}
+
+/* Main & Flashes */
+main {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 6rem auto 6rem; /* Platz für Header (oben) und Footer (unten) */
+  padding: 0 1rem;
+}
+.flashes {
+  list-style: none;
+  margin-bottom: 1rem;
+}
+.flashes li {
+  background: #fffae6;
+  border: 1px solid #ffe58f;
+  padding: 0.75rem;
+  border-radius: 3px;
+  margin-bottom: 0.5rem;
+}
+
+/* Tabellen */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+table th,
+table td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  text-align: left;
+}
+table th {
+  background: #f0f0f0;
+}
+
+/* Formulare */
+form {
+  margin-top: 1rem;
+}
+form div {
+  margin-bottom: 0.75rem;
+}
+form label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: bold;
+}
+form input[type="text"],
+form input[type="password"],
+form input[type="file"],
+form input[type="date"],
+form select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+}
+form button {
+  background: #004080;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 3px;
+  cursor: pointer;
+}
+form button:hover {
+  background: #0066cc;
+}
+
+/* Footer */
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #f0f0f0;
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+  z-index: 1000;
+}

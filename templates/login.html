@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Login — Lizenz Manager{% endblock %}
+
+{% block content %}
+  <form method="post" class="login-form">
+    <h2>Login</h2>
+    <div><label>Nutzername</label>
+      <input type="text" name="username"></div>
+    <div><label>Passwort</label>
+      <input type="password" name="password"></div>
+    <button type="submit">Anmelden</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Lizenz Manager{% endblock %}
+
+{% block content %}
+  <h2>Lizenz Dashboard</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Owner</th><th>ClientID</th><th>Lizenz</th>
+        <th>Erworben</th><th>Letzter Login</th><th>Fehler</th><th>Aktionen</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lic in licenses %}
+      <tr>
+        <td>{{ lic.id }}</td>
+        <td>{{ lic.owner or '' }}</td>
+        <td>{{ lic.client_id }}</td>
+        <td>{{ lic.license_key }}</td>
+        <td>{{ lic.acquired_at.strftime('%d.%m.%Y') }}</td>
+        <td>{{ lic.last_login_at.strftime('%d.%m.%Y %H:%M:%S') if lic.last_login_at else '' }}</td>
+        <td><a href="{{ url_for('error_log', license_id=lic.id) }}">{{ lic.error_counter }}</a></td>
+        <td>
+          <a href="{{ url_for('edit_license', license_id=lic.id) }}">Bearbeiten</a> |
+          <a href="{{ url_for('delete_license', license_id=lic.id) }}">Löschen</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

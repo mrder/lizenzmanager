@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Neues Update hochladen{% endblock %}
+
+{% block content %}
+  <h2>Neues Update hochladen</h2>
+  <form method="post" enctype="multipart/form-data">
+    <div>
+      <label>Tool/Programm:</label>
+      <input type="text" name="tool" required>
+    </div>
+    <div>
+      <label>Version:</label>
+      <input type="text" name="version" required placeholder="z.B. 1.2.3">
+    </div>
+    <div>
+      <label>Externer Link (optional):</label>
+      <input type="text" name="external_link" placeholder="https://...">
+    </div>
+    <div>
+      <label>Update-Datei (ZIP) (optional):</label>
+      <input type="file" name="update_file">
+    </div>
+    <button type="submit">Upload</button>
+  </form>
+{% endblock %}
