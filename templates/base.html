@@ -14,14 +14,28 @@
       <h1><a href="{{ url_for('dashboard') }}">Lizens Manager</a></h1>
       <nav>
         <a href="{{ url_for('dashboard') }}"
-           class="{% if active_page=='dashboard' %}active{% endif %}">Dashboard</a>
-        <a href="{{ url_for('generate_license') }}"
-           class="{% if active_page=='generate' %}active{% endif %}">Neue Lizenz</a>
+           class="{% if active_page=='dashboard' %}active{% endif %}">
+          Dashboard
+        </a>
+        <a href="{{ url_for('add_license') }}"
+           class="{% if active_page=='add' %}active{% endif %}">
+          Neue Lizenz
+        </a>
         <a href="{{ url_for('updates') }}"
-           class="{% if active_page=='updates' %}active{% endif %}">Update-Manager</a>
+           class="{% if active_page=='updates' %}active{% endif %}">
+          Update-Manager
+        </a>
         <a href="{{ url_for('backup_download') }}"
-           class="{% if active_page=='backup' %}active{% endif %}">Backup</a>
-        <a href="{{ url_for('logout') }}">Logout</a>
+           class="{% if active_page=='backup_download' %}active{% endif %}">
+          Backup herunterladen
+        </a>
+        <a href="{{ url_for('backup_upload') }}"
+           class="{% if active_page=='backup_upload' %}active{% endif %}">
+          Backup wiederherstellen
+        </a>
+        <a href="{{ url_for('logout') }}">
+          Logout
+        </a>
       </nav>
     </div>
   </header>
