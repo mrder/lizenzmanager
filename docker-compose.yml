@@ -15,3 +15,4 @@ services:
       - BASE_DOMAIN=https://localhost
       - USERNAME=admin
       - PASSWORD=admin
+      -IP_MISMATCH_THRESHOLD=3
