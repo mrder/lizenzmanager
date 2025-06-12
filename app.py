@@ -361,30 +361,43 @@ def backup_upload():
         if not file or not file.filename.lower().endswith('.db'):
             flash("Bitte eine .db-Datei auswählen.")
             return redirect(request.url)
-        tmp = os.path.join(app.config['UPLOAD_FOLDER'], 'temp.db')
-        file.save(tmp)
-        dest = DATABASE_URI.replace("sqlite:///", "", 1)
+
+        tmp_path = os.path.join(app.config['UPLOAD_FOLDER'], 'temp.db')
+        file.save(tmp_path)
+        db_path = DATABASE_URI.replace("sqlite:///", "", 1)
         db.session.remove()
+
         try:
-            shutil.copy(tmp, dest)
-            conn = sqlite3.connect(dest)
+            # 1) Backup in die Live-DB kopieren
+            shutil.copy(tmp_path, db_path)
+
+            # 2) Schema anpassen, falls Spalte fehlt
+            conn = sqlite3.connect(db_path)
             cur = conn.cursor()
+            cols = [row[1] for row in cur.execute("PRAGMA table_info(license)").fetchall()]
+            if 'last_login_mac' not in cols:
+                cur.execute("ALTER TABLE license ADD COLUMN last_login_mac VARCHAR(120)")
+            # 3) Deine bisherigen Cleanup-Updates
             cur.execute("UPDATE license SET last_login_at = NULL WHERE last_login_at = ''")
             cur.execute("UPDATE license SET expiry_date    = NULL WHERE expiry_date    = ''")
             conn.commit()
             conn.close()
-            flash("Backup wiederhergestellt. Bitte neu starten.")
+
+            flash("Backup erfolgreich wiederhergestellt. Bitte starten Sie die Anwendung neu.")
         except Exception as e:
-            flash(f"Fehler: {e}")
+            flash(f"Fehler beim Wiederherstellen des Backups: {e}")
         finally:
-            os.remove(tmp)
+            os.remove(tmp_path)
+
         return redirect(url_for('dashboard'))
+
     return render_template(
         'backup_upload.html',
-        active_page='backup',
+        active_page='backup_upload',
         current_year=datetime.datetime.utcnow().year,
         app_version=APP_VERSION
     )
+
 
 # -------------------- Update Manager --------------------
 @app.route('/updates')
