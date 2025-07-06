@@ -1,4 +1,3 @@
-# app.py
 import os
 import uuid
 import datetime
@@ -19,17 +18,17 @@ from functools import wraps
 from datetime import timedelta
 
 # -------------------- Konfiguration --------------------
-DATABASE_URI = os.environ.get('DATABASE_URI', 'sqlite:////data/licenses.db')
-UPLOAD_FOLDER = os.environ.get(
+DATABASE_URI            = os.environ.get('DATABASE_URI', 'sqlite:////data/licenses.db')
+UPLOAD_FOLDER           = os.environ.get(
     'UPLOAD_FOLDER',
     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 )
-PORT                 = int(os.environ.get('PORT', 5200))
-SECRET_KEY           = os.environ.get('SECRET_KEY', '123456')
-BASE_DOMAIN          = os.environ.get('BASE_DOMAIN', 'https://localhost')
-USERNAME             = os.environ.get('USERNAME', 'admin')
-PASSWORD             = os.environ.get('PASSWORD', 'admin')
-IP_MISMATCH_THRESHOLD = 2  # Anzahl erlaubter IP-Wechsel ohne Block
+PORT                    = int(os.environ.get('PORT', 5200))
+SECRET_KEY              = os.environ.get('SECRET_KEY', '123456')
+BASE_DOMAIN             = os.environ.get('BASE_DOMAIN', 'https://localhost')
+USERNAME                = os.environ.get('USERNAME', 'admin')
+PASSWORD                = os.environ.get('PASSWORD', 'admin')
+IP_MISMATCH_THRESHOLD   = 2  # Anzahl erlaubter IP-Wechsel ohne Block
 
 # ---------------- Variablen ----------------------------
 APP_VERSION = '1.1'
@@ -151,6 +150,7 @@ def verify_license():
         lic.client_version = client_version
 
     now = datetime.datetime.utcnow()
+
     # Ablaufdatum prüfen
     if lic.expiry_date and lic.expiry_date < now:
         lic.error_counter += 1
@@ -167,23 +167,37 @@ def verify_license():
     prev_mac = lic.last_login_mac
     if prev_ip and prev_ip != client_ip \
        and is_public_ip(prev_ip) and is_public_ip(client_ip):
-        if not client_mac or not prev_mac or client_mac != prev_mac:
-            lic.error_counter += 1
-            db.session.add(ErrorLog(license_id=lic.id, message="Double IP+MAC Login"))
-            db.session.commit()
-            if lic.error_counter >= IP_MISMATCH_THRESHOLD:
-                return jsonify(
-                    Lizenzstatus=False,
-                    Ablaufdatum=lic.expiry_date.strftime('%d.%m.%Y') if lic.expiry_date else None,
-                    Nachricht='Double IP Login'
-                )
-            else:
-                remaining = IP_MISMATCH_THRESHOLD - lic.error_counter
-                return jsonify(
-                    Lizenzstatus=True,
-                    Ablaufdatum=lic.expiry_date.strftime('%d.%m.%Y') if lic.expiry_date else None,
-                    Nachricht=f"Warnung: IP-Wechsel – noch {remaining} bis Block."
-                )
+
+        # Baue die Detail-Nachricht
+        parts = [f"vorherige IP={prev_ip}", f"aktuelle IP={client_ip}"]
+        if prev_mac or client_mac:
+            parts.append(f"vorherige MAC={prev_mac or '–'}")
+            parts.append(f"aktuelle MAC={client_mac or '–'}")
+        detail_msg = "Double IP+MAC Login: " + ", ".join(parts)
+
+        # Loggen
+        lic.error_counter += 1
+        db.session.add(ErrorLog(license_id=lic.id, message=detail_msg))
+        db.session.commit()
+
+        # Block-Logik
+        if lic.error_counter >= IP_MISMATCH_THRESHOLD:
+            return jsonify(
+                Lizenzstatus=False,
+                Ablaufdatum=lic.expiry_date.strftime('%d.%m.%Y') if lic.expiry_date else None,
+                Nachricht='Double IP Login'
+            )
+        else:
+            remaining = IP_MISMATCH_THRESHOLD - lic.error_counter
+            warn_msg = (
+                f"Warnung: IP-Wechsel von {prev_ip} zu {client_ip} – "
+                f"noch {remaining} bis Block."
+            )
+            return jsonify(
+                Lizenzstatus=True,
+                Ablaufdatum=lic.expiry_date.strftime('%d.%m.%Y') if lic.expiry_date else None,
+                Nachricht=warn_msg
+            )
 
     # Login-Daten speichern
     lic.last_login_at  = now
@@ -397,7 +411,6 @@ def backup_upload():
         current_year=datetime.datetime.utcnow().year,
         app_version=APP_VERSION
     )
-
 
 # -------------------- Update Manager --------------------
 @app.route('/updates')
