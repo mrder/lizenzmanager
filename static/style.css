@@ -76,6 +76,7 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
+  margin-left: 0;
 }
 table th,
 table td {
