@@ -165,33 +165,39 @@ def verify_license():
     # Double-Login-Check mit Threshold
     prev_ip  = lic.last_login_ip
     prev_mac = lic.last_login_mac
+    # Wenn es einen IP-Wechsel gibt:
     if prev_ip and prev_ip != client_ip \
        and is_public_ip(prev_ip) and is_public_ip(client_ip):
 
-        # Baue die Detail-Nachricht
-        parts = [f"vorherige IP={prev_ip}", f"aktuelle IP={client_ip}"]
-        if prev_mac or client_mac:
+        # Prüfen, ob die MAC übereinstimmt
+        if prev_mac and client_mac and prev_mac == client_mac:
+            # Reiner IP-Wechsel, gleicher Client – kein Fehler, nur speichern
+            lic.last_login_ip = client_ip
+            lic.last_login_at = now
+            db.session.commit()
+        else:
+            # Tatsächlicher Double-Login (IP und/oder MAC unterschiedlich)
+            parts = [f"vorherige IP={prev_ip}", f"aktuelle IP={client_ip}"]
             parts.append(f"vorherige MAC={prev_mac or '–'}")
             parts.append(f"aktuelle MAC={client_mac or '–'}")
-        detail_msg = "Double IP+MAC Login: " + ", ".join(parts)
+            detail_msg = "Double IP+MAC Login: " + ", ".join(parts)
 
-        # Loggen
-        lic.error_counter += 1
-        db.session.add(ErrorLog(license_id=lic.id, message=detail_msg))
-        db.session.commit()
+            # Loggen und Counter erhöhen
+            lic.error_counter += 1
+            db.session.add(ErrorLog(license_id=lic.id, message=detail_msg))
+            db.session.commit()
 
-        # Block-Logik
-        if lic.error_counter >= IP_MISMATCH_THRESHOLD:
-            return jsonify(
-                Lizenzstatus=False,
-                Ablaufdatum=lic.expiry_date.strftime('%d.%m.%Y') if lic.expiry_date else None,
-                Nachricht='Double IP Login'
-            )
-        else:
+            # Block-Logik
+            if lic.error_counter >= IP_MISMATCH_THRESHOLD:
+                return jsonify(
+                    Lizenzstatus=False,
+                    Ablaufdatum=lic.expiry_date.strftime('%d.%m.%Y') if lic.expiry_date else None,
+                    Nachricht='Double IP Login'
+                )
             remaining = IP_MISMATCH_THRESHOLD - lic.error_counter
             warn_msg = (
-                f"Warnung: IP-Wechsel von {prev_ip} zu {client_ip} – "
-                f"noch {remaining} bis Block."
+                f"Warnung: Doppel-Login erkannt – "
+                f"noch {remaining} Fehlversuche bis Block."
             )
             return jsonify(
                 Lizenzstatus=True,
@@ -199,13 +205,13 @@ def verify_license():
                 Nachricht=warn_msg
             )
 
-    # Login-Daten speichern
+    # Normales Login: Daten speichern
     lic.last_login_at  = now
     lic.last_login_ip  = client_ip
     if client_mac:
         lic.last_login_mac = client_mac
 
-    # Update-Info
+    # Update-Info abfragen
     upd = ToolUpdate.query.filter_by(tool=lic.tool) \
             .order_by(ToolUpdate.id.desc()).first()
     update_info = {"UpdateAvailable": False, "LatestVersion": None, "UpdateURL": None}
