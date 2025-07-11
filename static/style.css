@@ -138,7 +138,7 @@ footer {
 }
 /* Footer-Logo deutlich kleiner machen */
 footer img {
-  max-height: 2.5rem;  /* Bildhöhe auf 1.5rem beschränken */
+  max-height: 1.5rem;  /* Bildhöhe auf 1.5rem beschränken */
   width: auto;         /* Seitenverhältnis beibehalten */
   margin-right: 0.5rem;
 }
